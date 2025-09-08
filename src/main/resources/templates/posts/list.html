@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <title>게시글 목록</title>
+    <link rel="stylesheet" th:href="@{/plugins/fontawesome-free/css/all.min.css}">
+    <link rel="stylesheet" th:href="@{/dist/css/adminlte.min.css}">
+</head>
+<body class="hold-transition">
+<div class="d-flex justify-content-center align-items-center vh-100">
+    <div class="col-10">
+        <div class="card">
+            <div class="card-header">
+                                <h3 class="card-title">게시글 목록</h3>
+
+                                <div class="card-tools">
+                                    <form th:action="@{/posts/list}" method="get">
+                                        <div class="input-group input-group-sm" style="width: 220px;">
+                                            <input type="text" name="q" class="form-control float-right" placeholder="Search"
+                                                   th:value="${q}">
+                                            <div class="input-group-append">
+                                                <button type="submit" class="btn btn-default">
+                                                    <i class="fas fa-search"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                            <!-- /.card-header -->
+
+                            <div class="card-body table-responsive p-0">
+                                <table class="table table-hover text-nowrap">
+                                    <thead>
+                                    <tr>
+                                        <th style="width:80px;">글번호</th>
+                                        <th>제목</th>
+                                        <th>내용</th>
+                                        <th style="width:180px;">회원아이디</th>
+                                        <th style="width:170px;">작성일</th>
+                                        <th style="width:170px;">수정일</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr th:each="p : ${posts.content}">
+                                        <td th:text="${p.id}"></td>
+
+                                        <td>
+                                            <a th:href="@{'/posts/' + ${p.id}}" th:text="${p.title}"></a>
+                                        </td>
+                                        <td th:text="${p.bodyPreview}">본문 미리보기…</td>
+                                        <td th:text="${p.authorUserId}"></td>
+                                        <td th:text="${#temporals.format(p.createdAt, 'yyyy-MM-dd HH:mm')}"></td>
+                                        <td th:text="${#temporals.format(p.updateAt, 'yyyy-MM-dd HH:mm')}"></td>
+                                    </tr>
+                                    <tr th:if="${#lists.isEmpty(posts.content)}">
+                                        <td colspan="6" class="text-center text-muted p-4">게시글이 없습니다.</td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <!-- /.card-body -->
+
+                            <div class="card-footer clearfix">
+                                <ul class="pagination pagination-sm m-0 float-right">
+                                    <li class="page-item" th:classappend="${posts.first} ? 'disabled'">
+                                        <a class="page-link"
+                                           th:href="@{/posts/list(page=${posts.number-1}, size=${posts.size}, q=${q})}">&laquo;</a>
+                                    </li>
+
+                                    <li class="page-item" th:each="i : ${#numbers.sequence(0, posts.totalPages-1)}"
+                                        th:classappend="${i} == ${posts.number} ? 'active'">
+                                        <a class="page-link"
+                                           th:text="${i+1}"
+                                           th:href="@{/posts/list(page=${i}, size=${posts.size}, q=${q})}">1</a>
+                                    </li>
+
+                                    <li class="page-item" th:classappend="${posts.last} ? 'disabled'">
+                                        <a class="page-link"
+                                           th:href="@{/posts/list(page=${posts.number+1}, size=${posts.size}, q=${q})}">&raquo;</a>
+                                    </li>
+                                </ul>
+                            </div>
+                            <!-- /.card-footer -->
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </div>
+
+</div>
+
+<script th:src="@{/plugins/jquery/jquery.min.js}"></script>
+<script th:src="@{/plugins/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/dist/js/adminlte.min.js}"></script>
+</body>
+</html>
