@@ -1,13 +1,22 @@
 package com.bjw.testtable.service;
 
-import com.bjw.testtable.dto.post.*;
+import com.bjw.testtable.dto.post.PostCreateRequest;
+import com.bjw.testtable.dto.post.PostDetailResponse;
+import com.bjw.testtable.dto.post.PostListResponse;
+import com.bjw.testtable.dto.post.PostUpdateRequest;
+import com.bjw.testtable.entity.FileEntity;
 import com.bjw.testtable.entity.Post;
+import com.bjw.testtable.repository.FileRepository;
 import com.bjw.testtable.repository.PostRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -15,16 +24,44 @@ import org.springframework.transaction.annotation.Transactional;
 public class PostServiceImpl implements PostService {
 
     private final PostRepository postRepository;
+    private final FileRepository fileRepository;
+    private final FileStorageService fileStorageService;
 
+    @Transactional
     @Override
-    public Long create(String currentUserId, PostCreateRequest req) {
-        Post p = Post.builder()
-                .userId(currentUserId)
-                .title(req.getTitle())
-                .body(req.getBody())
-                .build();
-        return postRepository.save(p).getId();
+    public Long create(String currentUserId, PostCreateRequest req, List<MultipartFile> files) {
+
+        Post saved = postRepository.save(
+                Post.builder()
+                        .userId(currentUserId)
+                        .title(req.getTitle())
+                        .body(req.getBody())
+                        .build()
+        );
+
+        if (files != null) {
+            for (MultipartFile mf : files) {
+                if (mf != null && !mf.isEmpty()) {
+                    FileStorageResult fr = fileStorageService.save(mf);
+
+                    FileEntity fe = FileEntity.builder()
+                            .postId(saved.getId())                         // FK: post_id (엔티티 연관관계라면 post 객체 그대로 넘김)
+                            .userId(currentUserId)               // FK: users.user_id
+                            .filepath(fr.getPath())              // 저장된 파일 경로
+                            .contentType(fr.getContentType())    // MIME 타입
+                            .originalFilename(mf.getOriginalFilename()) // 업로드 당시 파일명
+                            .size(mf.getSize())                  // 파일 크기 (bytes)
+                            .build();
+
+
+                    fileRepository.save(fe);
+                }
+            }
+        }
+
+        return saved.getId();
     }
+
 
     @Override
     @Transactional(readOnly = true)

@@ -3,6 +3,7 @@ package com.bjw.testtable.dto.post;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -16,4 +17,5 @@ public class PostDetailResponse {
     private String authorUserId;
     private LocalDateTime createdAt;
     private LocalDateTime updateAt;
+    private List<FileResponse> files;
 }

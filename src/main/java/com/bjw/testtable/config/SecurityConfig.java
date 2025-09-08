@@ -26,7 +26,7 @@ public class SecurityConfig {
         http
                 .authenticationProvider(provider) // ★ 명시적으로 등록
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/css/**", "/js/**", "/images/**", "/dist/**", "/plugins/**", "/login", "/error").permitAll()
+                        .requestMatchers("/css/**", "/js/**", "/images/**", "/dist/**", "/plugins/**", "/login", "/error","/posts/create","/posts/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
@@ -34,7 +34,7 @@ public class SecurityConfig {
                         .loginProcessingUrl("/login")
                         .usernameParameter("user_id")
                         .passwordParameter("password")
-                        .defaultSuccessUrl("/", true)
+                        .defaultSuccessUrl("/posts/list", true)
                         .failureUrl("/login?error")
                         .permitAll()
                 )

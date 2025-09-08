@@ -28,3 +28,13 @@ server:
   error:
     include-message: always
     include-binding-errors: always
+
+
+servlet:
+  multipart:
+    max-file-size: 50MB
+    max-request-size: 50MB
+
+app:
+  upload:
+    dir: /Users/baekjiwon/uploads  # 맥 경로 예시 (쓰기권한 있는 곳)

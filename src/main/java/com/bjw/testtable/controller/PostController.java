@@ -15,7 +15,11 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @Controller
 @RequestMapping("/posts")
@@ -50,28 +54,37 @@ public class PostController {
     // 작성 폼 페이지
     @GetMapping("/create")
     public String createForm(Model model) {
-        model.addAttribute("postCreateRequest", new PostCreateRequest());
-        return "posts/create"; // templates/posts/create.html
+        model.addAttribute("post", new PostCreateRequest());
+        return "posts/create";
     }
 
-    // 작성 처리 (form action="/posts/create" method="post")
+    // 글 저장 (POST /posts/create)
     @PostMapping("/create")
-    public String create(@Valid PostCreateRequest req,
-                         @AuthenticationPrincipal UserDetails user) {
-        postService.create(user.getUsername(), req);
-        return "redirect:/posts/list"; // 작성 후 목록으로 이동
+    public String createSubmit(
+            @Valid @ModelAttribute("post") PostCreateRequest req,
+            BindingResult binding,
+            @RequestParam(value = "files", required = false) List<MultipartFile> files,
+            @AuthenticationPrincipal UserDetails user
+    ) {
+        if (binding.hasErrors()) return "posts/create";
+        Long id = postService.create(user.getUsername(), req, files);
+        return "redirect:/posts/" + id;
     }
+
+
+
+
 
     // 수정 폼 페이지
-    @GetMapping("/{id}/edit")
+    @GetMapping("/{id}/update")
     public String editForm(@PathVariable Long id, Model model) {
         PostDetailResponse post = postService.get(id);
         model.addAttribute("post", post);
-        return "posts/edit"; // templates/posts/edit.html
+        return "posts/update"; // templates/posts/edit.html
     }
 
     // 수정 처리
-    @PostMapping("/{id}/edit")
+    @PostMapping("/{id}/update")
     public String update(@PathVariable Long id,
                          @Valid PostUpdateRequest req,
                          @AuthenticationPrincipal UserDetails user) {
@@ -86,4 +99,6 @@ public class PostController {
         postService.delete(id, user.getUsername());
         return "redirect:/posts/list";
     }
+
+
 }
