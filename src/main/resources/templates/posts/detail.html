@@ -3,37 +3,68 @@
 <head>
     <meta charset="UTF-8"/>
     <title th:text="${post.title}">게시글 상세</title>
-    <link rel="stylesheet" th:href="@{/dist/css/bootstrap.min.css}" />
+
+    <!-- AdminLTE CSS (네가 쓰던 경로 유지) -->
+    <link rel="stylesheet" th:href="@{/dist/css/adminlte.min.css}">
+    <!-- (선택) 아이콘 필요하면 주석 해제
+    <link rel="stylesheet" th:href="@{/plugins/fontawesome-free/css/all.min.css}">
+    -->
+    <style>
+        /* 카드 폭 제한 + 테두리 강조 */
+        .post-card { max-width: 860px; }
+        .post-body { white-space: normal; }
+    </style>
 </head>
-<body class="container mt-4">
+<body class="bg-light">
 
-<h1 th:text="${post.title}">제목</h1>
-<p class="text-muted">
-    작성자: <span th:text="${post.authorUserId}">user</span> |
-    작성일: <span th:text="${post.createdAt}">2025-09-08</span>
-</p>
+<!-- 세로/가로 중앙 정렬 래퍼 -->
+<div class="container min-vh-100 d-flex align-items-center">
+    <div class="row justify-content-center w-100">
+        <div class="col-12 col-lg-10">
 
-<div class="border p-3 mb-3" th:utext="${post.body}">
-    본문 내용
-</div>
+            <!-- 카드: 검은 테두리 + 은은한 그림자 -->
+            <div class="card post-card border border-dark shadow">
+                <div class="card-body">
 
-<!-- 첨부파일 영역 -->
-<div th:if="${post.files}">
-    <h5>첨부파일</h5>
-    <ul>
-        <li th:each="f : ${post.files}">
-            <a th:href="@{/files/{id}(id=${f.id})}" th:text="${f.originalFilename}">파일명</a>
-            (<span th:text="${f.size}">0</span> bytes)
-        </li>
-    </ul>
-</div>
+                    <h1 class="h3 mb-3" th:text="${post.title}">제목</h1>
 
-<div class="mt-3">
-    <a th:href="@{/posts/list}" class="btn btn-secondary">목록</a>
-    <a th:href="@{/posts/{id}/update(id=${post.id})}" class="btn btn-primary">수정</a>
-    <form th:action="@{/posts/{id}/delete(id=${post.id})}" method="post" style="display:inline;">
-        <button type="submit" class="btn btn-danger">삭제</button>
-    </form>
+                    <p class="text-muted mb-4">
+                        작성자: <span th:text="${post.authorUserId}">user</span>
+                        &nbsp;|&nbsp;
+                        작성일:
+                        <span th:text="${#temporals.format(post.createdAt, 'yyyy-MM-dd HH:mm:ss')}">2025-09-08 17:07:08</span>
+                    </p>
+
+                    <!-- 본문: 블록 유지 -->
+                    <div class="post-body border rounded p-3 mb-4" th:utext="${post.body}">
+                        본문 내용
+                    </div>
+
+                    <!-- 첨부파일 -->
+                    <div th:if="${post.files != null and #lists.size(post.files) > 0}" class="mb-4">
+                        <h5 class="mb-2">첨부파일</h5>
+                        <ul class="mb-0">
+                            <li th:each="f : ${post.files}">
+                                <a th:href="@{/download/{id}(id=${f.id})}" th:text="${f.originalFilename}">파일명</a>
+                                (<span th:text="${f.size}">0</span> bytes)
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- 버튼들 -->
+                    <div class="d-flex gap-2">
+                        <a th:href="@{/posts/list}" class="btn btn-secondary">목록</a>
+                        <a th:href="@{/posts/{id}/update(id=${post.id})}" class="btn btn-primary">수정</a>
+                        <form th:action="@{/posts/{id}/delete(id=${post.id})}" method="post" class="ms-2">
+                            <button type="submit" class="btn btn-danger">삭제</button>
+                        </form>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
 </div>
 
 </body>

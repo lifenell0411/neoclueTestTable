@@ -1,9 +1,6 @@
 package com.bjw.testtable.service;
 
-import com.bjw.testtable.dto.post.PostCreateRequest;
-import com.bjw.testtable.dto.post.PostDetailResponse;
-import com.bjw.testtable.dto.post.PostListResponse;
-import com.bjw.testtable.dto.post.PostUpdateRequest;
+import com.bjw.testtable.dto.post.*;
 import com.bjw.testtable.entity.FileEntity;
 import com.bjw.testtable.entity.Post;
 import com.bjw.testtable.repository.FileRepository;
@@ -11,10 +8,12 @@ import com.bjw.testtable.repository.PostRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -62,19 +61,27 @@ public class PostServiceImpl implements PostService {
         return saved.getId();
     }
 
-
     @Override
-    @Transactional(readOnly = true)
     public PostDetailResponse get(Long id) {
-        Post p = postRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("게시글이 없습니다. id=" + id));
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다."));
+
+
+        List<FileResponse> files = fileRepository.findByPostId(id).stream()
+                .map(f -> FileResponse.builder()
+                        .id(f.getId())
+                        .originalFilename(f.getOriginalFilename())
+                        .size(f.getSize())
+                        .build())
+                .toList();
+
         return PostDetailResponse.builder()
-                .id(p.getId())
-                .title(p.getTitle())
-                .body(p.getBody())
-                .authorUserId(p.getUserId())
-                .createdAt(p.getCreatedAt())
-                .updateAt(p.getUpdateAt())
+                .id(post.getId())
+                .title(post.getTitle())
+                .body(post.getBody())
+                .authorUserId(post.getUserId())
+                .createdAt(post.getCreatedAt())
+                .files(files)
                 .build();
     }
 

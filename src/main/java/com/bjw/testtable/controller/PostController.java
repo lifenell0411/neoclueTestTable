@@ -4,6 +4,7 @@ import com.bjw.testtable.dto.post.PostCreateRequest;
 import com.bjw.testtable.dto.post.PostDetailResponse;
 import com.bjw.testtable.dto.post.PostListResponse;
 import com.bjw.testtable.dto.post.PostUpdateRequest;
+import com.bjw.testtable.repository.FileRepository;
 import com.bjw.testtable.service.PostService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ import java.util.List;
 public class PostController {
 
     private final PostService postService;
+    private final FileRepository fileRepository;
 
     // 목록 + 검색 + 페이징
     @GetMapping("/list")
@@ -99,6 +101,6 @@ public class PostController {
         postService.delete(id, user.getUsername());
         return "redirect:/posts/list";
     }
-
+   
 
 }

@@ -8,5 +8,7 @@ import java.util.List;
 public interface FileRepository extends JpaRepository<FileEntity, Long> {
 
 
-    List<FileEntity> findByPost_Id(Long postId);
+    List<FileEntity> findByPostId(Long postId);
+
+
 }
