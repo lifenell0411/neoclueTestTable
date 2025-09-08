@@ -4,8 +4,11 @@ import com.bjw.testtable.entity.User;
 import com.bjw.testtable.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.*;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -16,6 +19,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final UserRepository userRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         // 기본 로그인 페이지는 파라미터 name="username" → 우리는 이를 users.user_id와 매칭
         User u = userRepository.findByUserId(username)
@@ -27,7 +31,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         return org.springframework.security.core.userdetails.User
                 .withUsername(u.getUserId())
                 .password(u.getPassword()) // DB의 BCrypt 해시
-                .authorities(authorities)
+                .authorities(new SimpleGrantedAuthority(u.getRole().getName()))
                 .build();
     }
 }

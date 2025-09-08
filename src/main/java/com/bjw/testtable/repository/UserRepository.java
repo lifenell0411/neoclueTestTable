@@ -1,9 +1,17 @@
 package com.bjw.testtable.repository;
 
-import com.bjw.testtable.entity.User; // 네 패키지명에 맞춰 수정
+import com.bjw.testtable.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
+    @Query("""
+           select u
+           from User u
+           join fetch u.role
+           where u.userId = :userId
+           """)
     Optional<User> findByUserId(String userId); // 로그인용
 }
