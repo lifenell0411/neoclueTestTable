@@ -37,7 +37,7 @@ public class PostController {
     @PreAuthorize("isAuthenticated()")// 목록 + 검색 + 페이징
     @GetMapping("/list")
     public String list(@RequestParam(value = "q", required = false) String q,
-                       @RequestParam(defaultValue = "0") int page,
+                       @RequestParam(defaultValue = "0") int page, //페이지네이션
                        @RequestParam(defaultValue = "10") int size,
                        Model model) {
 

@@ -16,7 +16,7 @@
 
 
     <div class="col-10">
-        <!-- 성공 메시지 -->
+        <!-- 삭제 성공 메시지 -->
         <div th:if="${msg}" class="d-flex justify-content-center mt-2">
             <div class="alert alert-success alert-dismissible fade show d-inline-block px-3 py-2 mb-0 position-relative"
                  role="alert"
@@ -33,7 +33,7 @@
                 </button>
             </div>
         </div>
-        <!-- 에러 메시지 -->
+        <!--삭제 에러 메시지 -->
         <div th:if="${error}" class="d-flex justify-content-center mt-2 position-relative">
             <!-- 녹색 박스 -->
             <div class="alert alert-success fade show d-inline-block px-3 py-2 mb-0"
@@ -51,13 +51,13 @@
                 </button>
             </div>
 
-        <div class="card">
 
+
+
+
+        <div class="card">
             <div class="card-header">
                                 <h3 class="card-title">게시글 목록</h3>
-
-
-
                 <div class="card-tools">
                                     <form th:action="@{/posts/list}" method="get">
                                         <div class="input-group input-group-sm" style="width: 220px;">
