@@ -5,6 +5,7 @@ import com.bjw.testtable.domain.post.dto.PostDetailResponse;
 import com.bjw.testtable.domain.post.dto.PostListResponse;
 import com.bjw.testtable.domain.post.dto.PostUpdateRequest;
 import com.bjw.testtable.domain.post.service.PostService;
+import com.bjw.testtable.security.PostSecurity;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -30,6 +31,7 @@ import java.util.List;
 public class PostController {
 
     private final PostService postService;
+    private final PostSecurity postSecurity;
 
 
     @PreAuthorize("isAuthenticated()")// 목록 + 검색 + 페이징
@@ -55,13 +57,11 @@ public class PostController {
 
         boolean canEdit = false;
         if (auth != null && auth.isAuthenticated()) {
-            boolean isAdmin = auth.getAuthorities().stream()
-                    .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
-            boolean isOwner = post.getAuthorUserId() != null
-                    && post.getAuthorUserId().equals(auth.getName());
-            canEdit = isAdmin || isOwner;
+            // 보안 빈 재사용 (컨트롤러에서 ROLE 문자열 직접 만지지 않기)
+            canEdit = postSecurity.isOwner(id, auth)
+                    || auth.getAuthorities().stream().anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+            // ↑ 간단히 auth의 ADMIN 권한만 체크. (원하면 보안 빈에 canEdit(...) 만들어도 됨)
         }
-
         model.addAttribute("post", post);
         model.addAttribute("canEdit", canEdit);
         return "posts/detail";
@@ -91,7 +91,8 @@ public class PostController {
 
 
     // 수정 폼 페이지
-    @PreAuthorize("isAuthenticated()")
+
+    @PreAuthorize("hasRole('ADMIN') or @postSecurity.isOwner(#id, authentication)")
     @GetMapping("/{id}/update")
     public String editForm(@PathVariable Long id,
                            Model model,
@@ -99,73 +100,45 @@ public class PostController {
                            RedirectAttributes ra) {
 
         PostDetailResponse post = postService.get(id);
-
-        boolean isAdmin = auth.getAuthorities().stream()
-                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
-        boolean isOwner = post.getAuthorUserId() != null
-                && post.getAuthorUserId().equals(auth.getName());
-
-        if (!(isAdmin || isOwner)) {
-            ra.addFlashAttribute("error", "수정 권한이 없습니다.");
-            return "redirect:/posts/" + id;
-        }
-
         model.addAttribute("post", post);
         return "posts/update";
     }
 
 
     // 수정 처리 (files + deleteFileIds 받기)
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ADMIN') or @postSecurity.isOwner(#id, authentication)")
     @PostMapping("/{id}/update")
     public String update(@PathVariable Long id,
                          @Valid @ModelAttribute("post") PostUpdateRequest req,
                          BindingResult binding,
                          @RequestParam(value = "files", required = false) List<MultipartFile> files,
                          @RequestParam(value = "deleteFileIds", required = false) List<Long> deleteFileIds,
-                         Authentication auth,               // ← 권한/아이디 같이 받음
+                         @AuthenticationPrincipal UserDetails user,
                          RedirectAttributes ra) {
 
+
         if (binding.hasErrors()) return "posts/update";
-        if (auth == null || !auth.isAuthenticated()) {
-            return "redirect:/login";
-        }
 
-        try {
-            postService.update(
-                    id,
-                    auth.getName(),            // 현재 로그인 아이디
-                    auth.getAuthorities(),     // 권한들 (ADMIN 판단)
-                    req,
-                    files,                     // 새로 추가할 파일들
-                    deleteFileIds              // 삭제 체크된 파일 id들
-            );
-            ra.addFlashAttribute("msg", "수정되었습니다.");
-            return "redirect:/posts/" + id;
-        } catch (org.springframework.security.access.AccessDeniedException e) {
-            ra.addFlashAttribute("error", "수정 권한이 없습니다.");
-            return "redirect:/posts/" + id;
-        }
-
+        postService.update(id, user.getUsername(), req, files, deleteFileIds);
+        ra.addFlashAttribute("msg", "수정되었습니다.");
+        return "redirect:/posts/" + id;
     }
 
-    @PreAuthorize("isAuthenticated()")
+
+
+
+
+    @PreAuthorize("hasRole('ADMIN') or @postSecurity.isOwner(#id, authentication)")
     // 삭제 처리 (버튼 눌러서 POST or GET으로 날리면 됨)
     @PostMapping("/{id}/delete")
     public String delete(@PathVariable Long id,
-                         Authentication auth,
+                         @AuthenticationPrincipal UserDetails user,
                          RedirectAttributes ra) {
-        if (auth == null || !auth.isAuthenticated()) {
-            return "redirect:/login";
-        }
-        try {
-            postService.delete(id, auth.getName(), auth.getAuthorities());
+
+            postService.delete(id, user.getUsername(), user.getAuthorities());
             ra.addFlashAttribute("msg", "삭제되었습니다.");
             return "redirect:/posts/list";
-        } catch (org.springframework.security.access.AccessDeniedException e) {
-            ra.addFlashAttribute("error", "삭제 권한이 없습니다.");
-            return "redirect:/posts/" + id;
-        }
+
 
     }
 }

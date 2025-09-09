@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +33,7 @@ public class PostServiceImpl implements PostService {
 
     @Transactional
     @Override
+    @PreAuthorize("isAuthenticated()") //글 작성은 로그인한 사용자만
     public Long create(String currentUserId, PostCreateRequest req, List<MultipartFile> files) {
 
         Post saved = postRepository.save(
@@ -65,7 +67,11 @@ public class PostServiceImpl implements PostService {
         return saved.getId();
     }
 
+
+
     @Override
+    @PreAuthorize("isAuthenticated()") // 읽기도 로그인만 허용
+    @Transactional(readOnly = true)
     public PostDetailResponse get(Long id) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다."));
@@ -105,9 +111,9 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    @PreAuthorize("hasRole('ADMIN') or @postSecurity.isOwner(#id, authentication)")
     public void update(Long id,
                        String currentUserId,
-                       Collection<? extends GrantedAuthority> authorities,
                        PostUpdateRequest req,
                        List<MultipartFile> newFiles,
                        List<Long> deleteFileIds) {
@@ -115,16 +121,12 @@ public class PostServiceImpl implements PostService {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다. id=" + id));
 
-        // 권한 체크: 본인 or ADMIN
-        if (!canEdit(currentUserId, authorities, post)) {
-            throw new org.springframework.security.access.AccessDeniedException("수정 권한이 없습니다.");
-        }
 
         // 본문/제목 수정
         post.setTitle(req.getTitle());
         post.setBody(req.getBody());
-        // updatedAt 컬럼이 있으면 갱신
-        if (hasUpdatedAt(post)) {
+
+        if (hasUpdateAt(post)) {
             post.setUpdateAt(LocalDateTime.now());
         }
 
@@ -158,50 +160,26 @@ public class PostServiceImpl implements PostService {
                 fileRepository.save(fe);
             }
         }
-        // @Transactional이라 메서드 정상 종료 시 자동 flush/commit
+
     }
 
-    private boolean canEdit(String currentUserId,
-                            Collection<? extends GrantedAuthority> authorities,
-                            Post post) {
-        boolean isAdmin = authorities != null
-                && authorities.stream().anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
-        return isAdmin || (post.getUserId() != null && post.getUserId().equals(currentUserId));
-    }
 
-    private boolean hasUpdatedAt(Post post) {
+    private boolean hasUpdateAt(Post post) {
         try {
-            post.getClass().getDeclaredField("updatedAt");
+            post.getClass().getDeclaredField("updateAt");
             return true;
         } catch (NoSuchFieldException e) {
             return false;
         }
     }
 
+
     @Override
-    @Transactional(readOnly = true)
-    public boolean canEdit(Long id, String currentUserId, Collection<? extends GrantedAuthority> authorities) {
-        return postRepository.findById(id)
-                .map(post -> {
-                    boolean isOwner = post.getUserId().equals(currentUserId);
-                    boolean isAdmin = authorities.stream()
-                            .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
-                    return isOwner || isAdmin;
-                })
-                .orElse(false); // 글이 없으면 편집 불가
-    }
-    @Override
+    @PreAuthorize("hasRole('ADMIN') or @postSecurity.isOwner(#id, authentication)")
     public void delete(Long id, String currentUserId, Collection<? extends GrantedAuthority> authorities) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("게시글 없음"));
 
-        boolean isAdmin = authorities != null &&
-                authorities.stream().anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
-        boolean isOwner = currentUserId != null && currentUserId.equals(post.getUserId());
-
-        if (!(isAdmin || isOwner)) {
-            throw new org.springframework.security.access.AccessDeniedException("삭제 권한 없음");
-        }
 
         // 1) 첨부파일 엔티티들 조회
         List<FileEntity> files = fileRepository.findByPostId(id);
