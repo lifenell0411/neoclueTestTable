@@ -34,6 +34,8 @@
                         작성일:
                         <span th:text="${#temporals.format(post.createdAt, 'yyyy-MM-dd HH:mm:ss')}">2025-09-08 17:07:08</span>
                     </p>
+                    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+                    <div th:if="${msg}" class="alert alert-success" th:text="${msg}"></div>
 
                     <!-- 본문: 블록 유지 -->
                     <div class="post-body border rounded p-3 mb-4" th:utext="${post.body}">
@@ -52,10 +54,13 @@
                     </div>
 
                     <!-- 버튼들 -->
-                    <div class="d-flex gap-2">
+                    <div class="d-flex justify-content-end align-items-center" style="gap: 20px;">
                         <a th:href="@{/posts/list}" class="btn btn-secondary">목록</a>
-                        <a th:href="@{/posts/{id}/update(id=${post.id})}" class="btn btn-primary">수정</a>
-                        <form th:action="@{/posts/{id}/delete(id=${post.id})}" method="post" class="ms-2">
+                        <a th:if="${canEdit}" th:href="@{/posts/{id}/update(id=${post.id})}" class="btn btn-primary">수정</a>
+                        <form th:if="${canEdit}"
+                              th:action="@{/posts/{id}/delete(id=${post.id})}"
+                              method="post"
+                              class="d-inline-block">
                             <button type="submit" class="btn btn-danger">삭제</button>
                         </form>
                     </div>

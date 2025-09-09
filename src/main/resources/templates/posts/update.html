@@ -10,7 +10,7 @@
 <h2>게시글 수정</h2>
 
 <form th:action="@{/posts/{id}/update(id=${post.id})}"
-      th:object="${post}" method="post">
+      th:object="${post}" method="post" enctype="multipart/form-data">
 
     <!-- 제목 -->
     <div class="mb-3">

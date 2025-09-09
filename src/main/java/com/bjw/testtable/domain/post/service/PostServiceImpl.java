@@ -114,35 +114,35 @@ public class PostServiceImpl implements PostService {
                        List<Long> deleteFileIds) {
 
         Post post = postRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("게시글을 찾을 수 없습니다. id=" + id));
+                .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다. id=" + id));
 
-        boolean isOwner = post.getUserId().equals(currentUserId);
-        boolean isAdmin = authorities.stream().anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
-        if (!isOwner && !isAdmin) {
-            throw new AccessDeniedException("수정 권한이 없습니다.");
+        // 권한 체크: 본인 or ADMIN
+        if (!canEdit(currentUserId, authorities, post)) {
+            throw new org.springframework.security.access.AccessDeniedException("수정 권한이 없습니다.");
         }
 
-        // 1) 본문/제목 수정
+        // 본문/제목 수정
         post.setTitle(req.getTitle());
         post.setBody(req.getBody());
-        post.setUpdateAt(LocalDateTime.now());
-
-        // 2) 첨부파일 삭제(선택 항목)
-        if (deleteFileIds != null && !deleteFileIds.isEmpty()) {
-            List<FileEntity> toDelete = fileRepository.findAllById(deleteFileIds);
-            for (FileEntity f : toDelete) {
-                // 소유권 추가 방어선 (선택) : 다른 글 파일 못지우게
-                if (!f.getPostId().equals(post.getId()) && !isAdmin) continue;
-                try {
-                    fileStorageService.delete(f.getFilepath()); // 물리 파일 삭제
-                } catch (RuntimeException e) {
-                    // 로그만 남기고 계속 진행해도 됨
-                }
-            }
-            fileRepository.deleteAllInBatch(toDelete); // 메타 삭제
+        // updatedAt 컬럼이 있으면 갱신
+        if (hasUpdatedAt(post)) {
+            post.setUpdateAt(LocalDateTime.now());
         }
 
-        // 3) 새 파일 추가
+        // 파일 삭제(해당 글의 파일만)
+        if (deleteFileIds != null && !deleteFileIds.isEmpty()) {
+            List<FileEntity> toDelete = fileRepository.findByIdInAndPostId(deleteFileIds, post.getId());
+            for (FileEntity f : toDelete) {
+                try {
+                    fileStorageService.delete(f.getFilepath()); // 디스크(S3) 삭제
+                } catch (RuntimeException ex) {
+                    // 디스크 삭제 실패는 로그만 남기고 DB는 지울지 정책 결정 (여기선 같이 삭제)
+                }
+            }
+            fileRepository.deleteAll(toDelete);
+        }
+
+        // 새 파일 추가
         if (newFiles != null) {
             for (MultipartFile mf : newFiles) {
                 if (mf == null || mf.isEmpty()) continue;
@@ -159,8 +159,26 @@ public class PostServiceImpl implements PostService {
                 fileRepository.save(fe);
             }
         }
-        // JPA 영속 상태라 별도 save() 없어도 커밋 시 반영됨
+        // @Transactional이라 메서드 정상 종료 시 자동 flush/commit
     }
+
+    private boolean canEdit(String currentUserId,
+                            Collection<? extends GrantedAuthority> authorities,
+                            Post post) {
+        boolean isAdmin = authorities != null
+                && authorities.stream().anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+        return isAdmin || (post.getUserId() != null && post.getUserId().equals(currentUserId));
+    }
+
+    private boolean hasUpdatedAt(Post post) {
+        try {
+            post.getClass().getDeclaredField("updatedAt");
+            return true;
+        } catch (NoSuchFieldException e) {
+            return false;
+        }
+    }
+
     @Override
     @Transactional(readOnly = true)
     public boolean canEdit(Long id, String currentUserId, Collection<? extends GrantedAuthority> authorities) {

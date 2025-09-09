@@ -48,10 +48,21 @@ public class PostController {
 
     // 상세
     @GetMapping("/{id}")
-    public String detail(@PathVariable Long id, Model model) {
+    public String detail(@PathVariable Long id, Model model, Authentication auth) {
         PostDetailResponse post = postService.get(id);
+
+        boolean canEdit = false;
+        if (auth != null && auth.isAuthenticated()) {
+            boolean isAdmin = auth.getAuthorities().stream()
+                    .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+            boolean isOwner = post.getAuthorUserId() != null
+                    && post.getAuthorUserId().equals(auth.getName());
+            canEdit = isAdmin || isOwner;
+        }
+
         model.addAttribute("post", post);
-        return "posts/detail"; // templates/posts/detail.html
+        model.addAttribute("canEdit", canEdit);
+        return "posts/detail";
     }
 
     // 작성 폼 페이지
@@ -88,16 +99,26 @@ public class PostController {
         if (auth == null || !auth.isAuthenticated()) {
             return "redirect:/login";
         }
-        // 권한 체크 (본인 or 관리자)
-        if (!postService.canEdit(id, auth.getName(), auth.getAuthorities())) {
-            ra.addFlashAttribute("error", "수정 권한이 없습니다.");
-            return "redirect:/posts/" + id; // 상세로 되돌림 + 팝업
-        }
 
         PostDetailResponse post = postService.get(id);
+
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+        boolean isOwner = post.getAuthorUserId() != null
+                && post.getAuthorUserId().equals(auth.getName());
+
+        if (!(isAdmin || isOwner)) {
+            ra.addFlashAttribute("error", "수정 권한이 없습니다.");
+            return "redirect:/posts/" + id;
+        }
+
         model.addAttribute("post", post);
         return "posts/update";
     }
+
+
+
+
     // 수정 처리 (files + deleteFileIds 받기)
     @PostMapping("/{id}/update")
     public String update(@PathVariable Long id,
