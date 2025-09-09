@@ -21,7 +21,7 @@ spring:
 logging.level:
   org.springframework.security: DEBUG        # 시큐리티 전 과정 디버그 (인증/비번매칭/리다이렉트)
   org.hibernate.SQL: DEBUG                  # 이미 있음: 실행된 SQL
-  org.hibernate.type.descriptor.sql: TRACE  # 바인딩된 파라미터 값(=?에 뭐 들어갔는지)까지 확인
+  org.hibernate.type.descriptor.sql.BasicBinder: trace  # 바인딩된 파라미터 값(=?에 뭐 들어갔는지)까지 확인
   com.zaxxer.hikari: INFO                   # 커넥션풀 상태
 
 server:

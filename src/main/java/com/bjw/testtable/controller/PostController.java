@@ -1,17 +1,17 @@
 package com.bjw.testtable.controller;
 
-import com.bjw.testtable.dto.post.PostCreateRequest;
-import com.bjw.testtable.dto.post.PostDetailResponse;
-import com.bjw.testtable.dto.post.PostListResponse;
-import com.bjw.testtable.dto.post.PostUpdateRequest;
-import com.bjw.testtable.repository.FileRepository;
-import com.bjw.testtable.service.PostService;
+import com.bjw.testtable.domain.post.dto.PostCreateRequest;
+import com.bjw.testtable.domain.post.dto.PostDetailResponse;
+import com.bjw.testtable.domain.post.dto.PostListResponse;
+import com.bjw.testtable.domain.post.dto.PostUpdateRequest;
+import com.bjw.testtable.domain.post.service.PostService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
@@ -19,6 +19,7 @@ import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
 
@@ -28,7 +29,7 @@ import java.util.List;
 public class PostController {
 
     private final PostService postService;
-    private final FileRepository fileRepository;
+
 
     // 목록 + 검색 + 페이징
     @GetMapping("/list")
@@ -78,29 +79,66 @@ public class PostController {
 
 
     // 수정 폼 페이지
+
     @GetMapping("/{id}/update")
-    public String editForm(@PathVariable Long id, Model model) {
+    public String editForm(@PathVariable Long id,
+                           Model model,
+                           Authentication auth,
+                           RedirectAttributes ra) {
+        if (auth == null || !auth.isAuthenticated()) {
+            return "redirect:/login";
+        }
+        // 권한 체크 (본인 or 관리자)
+        if (!postService.canEdit(id, auth.getName(), auth.getAuthorities())) {
+            ra.addFlashAttribute("error", "수정 권한이 없습니다.");
+            return "redirect:/posts/" + id; // 상세로 되돌림 + 팝업
+        }
+
         PostDetailResponse post = postService.get(id);
         model.addAttribute("post", post);
-        return "posts/update"; // templates/posts/edit.html
+        return "posts/update";
     }
-
-    // 수정 처리
+    // 수정 처리 (files + deleteFileIds 받기)
     @PostMapping("/{id}/update")
     public String update(@PathVariable Long id,
-                         @Valid PostUpdateRequest req,
-                         @AuthenticationPrincipal UserDetails user) {
-        postService.update(id, user.getUsername(), req);
-        return "redirect:/posts/" + id; // 수정 후 상세 페이지로
+                         @Valid @ModelAttribute("post") PostUpdateRequest req,
+                         BindingResult binding,
+                         @RequestParam(value = "files", required = false) List<MultipartFile> files,
+                         @RequestParam(value = "deleteFileIds", required = false) List<Long> deleteFileIds,
+                         Authentication auth,               // ← 권한/아이디 같이 받음
+                         RedirectAttributes ra) {
+
+        if (binding.hasErrors()) return "posts/update";
+        if (auth == null || !auth.isAuthenticated()) {
+            return "redirect:/login";
+        }
+
+        try {
+            postService.update(
+                    id,
+                    auth.getName(),            // 현재 로그인 아이디
+                    auth.getAuthorities(),     // 권한들 (ADMIN 판단)
+                    req,
+                    files,                     // 새로 추가할 파일들
+                    deleteFileIds              // 삭제 체크된 파일 id들
+            );
+            ra.addFlashAttribute("msg", "수정되었습니다.");
+            return "redirect:/posts/" + id;
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            ra.addFlashAttribute("error", "수정 권한이 없습니다.");
+            return "redirect:/posts/" + id;
+        }
+
     }
 
-    // 삭제 처리 (버튼 눌러서 POST or GET으로 날리면 됨)
-    @PostMapping("/{id}/delete")
-    public String delete(@PathVariable Long id,
-                         @AuthenticationPrincipal UserDetails user) {
-        postService.delete(id, user.getUsername());
-        return "redirect:/posts/list";
-    }
-   
 
-}
+        // 삭제 처리 (버튼 눌러서 POST or GET으로 날리면 됨)
+        @PostMapping("/{id}/delete")
+        public String delete (@PathVariable Long id,
+                @AuthenticationPrincipal UserDetails user){
+            postService.delete(id, user.getUsername());
+            return "redirect:/posts/list";
+        }
+
+
+    }

@@ -1,7 +1,7 @@
 package com.bjw.testtable.controller;
 
-import com.bjw.testtable.dto.post.file.FileDownloadDto;
-import com.bjw.testtable.service.FileService;
+import com.bjw.testtable.domain.file.dto.FileDownloadDto;
+import com.bjw.testtable.domain.file.service.FileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
@@ -22,7 +22,7 @@ public class FileController {
 
     private final FileService fileService; // ★ 반드시 final
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id}") //파일을 다운로드할것이다, fileService에게 getFile시켜서 다운로드 기능 작동. 다운로드할때는 fileRepository에서 findByPostId 해서 fileentity를 찾고 filePath로 실제파일 읽어와서 FileDownloadDto로 변환?
     public ResponseEntity<Resource> download(@PathVariable Long id) {
         FileDownloadDto dto = fileService.getFile(id);
 
