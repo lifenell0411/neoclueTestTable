@@ -8,12 +8,57 @@
 </head>
 <body class="hold-transition">
 <div class="d-flex justify-content-center align-items-center vh-100">
+
+    <!-- 상단 로그아웃 버튼 -->
+    <form th:action="@{/logout}" method="post" style="position:absolute; top:20px; right:20px;">
+        <button type="submit" class="btn btn-outline-danger btn-sm">로그아웃</button>
+    </form>
+
+
     <div class="col-10">
+        <!-- 성공 메시지 -->
+        <div th:if="${msg}" class="d-flex justify-content-center mt-2">
+            <div class="alert alert-success alert-dismissible fade show d-inline-block px-3 py-2 mb-0 position-relative"
+                 role="alert"
+                 style="max-width: fit-content;">
+                <span th:text="${msg}"></span>
+
+                <!-- X 버튼: 박스 바깥 오른쪽 위 -->
+                <button type="button"
+                        class="close position-absolute"
+                        data-dismiss="alert"
+                        aria-label="Close"
+                        style="top: -10px; right: -10px; border: none; background: transparent; font-size: 1.2rem; line-height: 1;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        </div>
+        <!-- 에러 메시지 -->
+        <div th:if="${error}" class="d-flex justify-content-center mt-2 position-relative">
+            <!-- 녹색 박스 -->
+            <div class="alert alert-success fade show d-inline-block px-3 py-2 mb-0"
+                 role="alert"
+                 style="max-width: fit-content; position: relative;">
+                <span th:text="${error}"></span>
+            </div>
+                <!-- X 버튼 (녹색 박스 바깥 오른쪽 위) -->
+                <button type="button"
+                        class="close position-absolute"
+                        data-dismiss="alert"
+                        aria-label="Close"
+                        style="top: -10px; right: -10px; border: none; background: transparent; font-size: 1.2rem; line-height: 1;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
         <div class="card">
+
             <div class="card-header">
                                 <h3 class="card-title">게시글 목록</h3>
 
-                                <div class="card-tools">
+
+
+                <div class="card-tools">
                                     <form th:action="@{/posts/list}" method="get">
                                         <div class="input-group input-group-sm" style="width: 220px;">
                                             <input type="text" name="q" class="form-control float-right" placeholder="Search"
@@ -27,6 +72,10 @@
                                     </form>
                                 </div>
                             </div>
+
+
+
+
                             <!-- /.card-header -->
 
                             <div class="card-body table-responsive p-0">

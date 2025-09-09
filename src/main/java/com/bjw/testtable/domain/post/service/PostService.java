@@ -22,7 +22,7 @@ public interface PostService {
                 List<MultipartFile> newFiles,
                 List<Long> deleteFileIds);
     boolean canEdit(Long id, String currentUserId, Collection<? extends GrantedAuthority> authorities);
-    void delete(Long id, String currentUserId);
+    void delete(Long id, String currentUserId,Collection<? extends GrantedAuthority> authorities);
     // service/PostService.java
     Long create(String currentUserId, PostCreateRequest req, List<MultipartFile> files);
 

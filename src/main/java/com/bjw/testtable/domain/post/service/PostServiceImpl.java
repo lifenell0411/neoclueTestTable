@@ -11,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -192,12 +191,30 @@ public class PostServiceImpl implements PostService {
                 .orElse(false); // 글이 없으면 편집 불가
     }
     @Override
-    public void delete(Long id, String currentUserId) {
-        Post p = postRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("게시글이 없습니다. id=" + id));
-        if (!p.getUserId().equals(currentUserId)) {
-            throw new AccessDeniedException("삭제 권한이 없습니다.");
+    public void delete(Long id, String currentUserId, Collection<? extends GrantedAuthority> authorities) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("게시글 없음"));
+
+        boolean isAdmin = authorities != null &&
+                authorities.stream().anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+        boolean isOwner = currentUserId != null && currentUserId.equals(post.getUserId());
+
+        if (!(isAdmin || isOwner)) {
+            throw new org.springframework.security.access.AccessDeniedException("삭제 권한 없음");
         }
-        postRepository.delete(p);
+
+        // 1) 첨부파일 엔티티들 조회
+        List<FileEntity> files = fileRepository.findByPostId(id);
+
+        // 2) 물리 파일 삭제
+        for (FileEntity f : files) {
+            fileStorageService.delete(f.getFilepath()); // default 메서드/impl 둘 다 OK
+        }
+
+        // 3) 파일 엔티티 삭제
+        fileRepository.deleteAll(files);
+
+        // 4) 게시글 삭제
+        postRepository.delete(post);
     }
 }
