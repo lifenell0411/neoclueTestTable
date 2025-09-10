@@ -14,7 +14,7 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
-    // SecurityConfig.java
+
     @Bean
     public DaoAuthenticationProvider daoAuthProvider(UserDetailsService uds,
                                                      BCryptPasswordEncoder encoder) {
@@ -30,7 +30,7 @@ public class SecurityConfig {
         http
                 .authenticationProvider(provider) // ★ 명시적으로 등록
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/css/**", "/js/**", "/images/**", "/dist/**", "/plugins/**", "/login", "/error","/posts/create","/posts/**").permitAll()
+                        .requestMatchers("/css/**", "/js/**", "/images/**", "/dist/**", "/plugins/**", "/login", "/error","/test").permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form

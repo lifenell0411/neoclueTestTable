@@ -23,7 +23,7 @@ logging.level:
   org.hibernate.SQL: DEBUG                  # 이미 있음: 실행된 SQL
   org.hibernate.type.descriptor.sql.BasicBinder: trace  # 바인딩된 파라미터 값(=?에 뭐 들어갔는지)까지 확인
   com.zaxxer.hikari: INFO                   # 커넥션풀 상태
-
+  logging.level.org.hibernate.orm.jdbc.bind: trace
 server:
   error:
     include-message: always

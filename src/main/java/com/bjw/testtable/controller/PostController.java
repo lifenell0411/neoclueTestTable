@@ -34,6 +34,7 @@ public class PostController {
     private final PostSecurity postSecurity;
 
 
+
     @PreAuthorize("isAuthenticated()")// 목록 + 검색 + 페이징
     @GetMapping("/list")
     public String list(@RequestParam(value = "q", required = false) String q,

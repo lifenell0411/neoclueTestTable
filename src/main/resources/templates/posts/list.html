@@ -11,6 +11,7 @@
 
     <!-- 상단 로그아웃 버튼 -->
     <form th:action="@{/logout}" method="post" style="position:absolute; top:20px; right:20px;">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
         <button type="submit" class="btn btn-outline-danger btn-sm">로그아웃</button>
     </form>
 
