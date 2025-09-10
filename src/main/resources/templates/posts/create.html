@@ -26,10 +26,28 @@
                     <div class="text-danger" th:if="${#fields.hasErrors('body')}" th:errors="*{body}"></div>
                 </div>
 
+
+
+
+                <!--첨부파일-->
+
                 <div class="form-group">
-                    <label for="files">첨부파일</label>
-                    <input id="files" type="file" name="files" class="form-control" multiple>
-                    <small class="text-muted">여러 파일 선택 가능</small>
+                    <label class="form-label">첨부파일</label>
+
+                    <!-- 드롭존 + 버튼 -->
+                    <div id="dz-create" class="border rounded p-3 text-center">
+                        <div class="mb-2">파일을 여기로 끌어다 놓거나</div>
+                        <button type="button" id="addBtn-create" class="btn btn-outline-secondary btn-sm">파일 추가</button>
+                    </div>
+                    <small class="text-muted">여러 번 눌러서 계속 추가할 수 있어요</small>
+
+                    <!-- 실제로 서버로 제출되는 input (hidden) -->
+                    <input id="files-create" name="files" type="file" class="d-none" multiple>
+                    <!-- 매번 고르는 용도의 숨은 피커 -->
+                    <input id="picker-create" type="file" class="d-none" multiple>
+
+                    <!-- 선택 목록 -->
+                    <ul id="list-create" class="list-group mt-2"></ul>
                 </div>
 
 
@@ -123,6 +141,138 @@
     })();
 </script>
 
+<!--첨부파일 추가방식 변경 누적으로-->
+
+<script>
+    (function(){
+        // 서버 yml과 숫자 맞추기
+        var MAX_FILE_SIZE_MB = 20;
+        var MAX_REQ_SIZE_MB  = 25;
+        var MAX_FILE_SIZE = MAX_FILE_SIZE_MB*1024*1024;
+        var MAX_REQ_SIZE  = MAX_REQ_SIZE_MB*1024*1024;
+
+        function fmt(b){var u=['B','KB','MB','GB'],i=0,n=b;while(n>=1024&&i<u.length-1){n/=1024;i++;}return (n<10&&i>0?n.toFixed(1):Math.round(n))+' '+u[i];}
+        function keyOf(f){ return [f.name,f.size,f.lastModified].join('#'); }
+
+        function showSizeModal(html){
+            $('#sizeLimitBody').html(html);
+            $('#sizeLimitModal').modal('show');
+        }
+
+        function wirePicker(opts){
+            var $form  = $(opts.formSelector || 'form');
+            var $btn   = $(opts.btnId);
+            var $dz    = $(opts.dropzoneId);
+            var $picker= $(opts.pickerId);      // 매번 고르는 숨은 picker
+            var $input = $(opts.submitInputId); // 실제 제출되는 hidden input (name="files")
+            var $list  = $(opts.listId);
+
+            if(!$btn.length || !$picker.length || !$input.length || !$list.length) return;
+
+            var selected = new Map(); // key -> File
+
+            function validate(files){
+                var total = 0, over = [];
+                var all = Array.from(selected.values()).concat(Array.from(files));
+                for(var i=0;i<all.length;i++){
+                    total += all[i].size;
+                    if (all[i].size > MAX_FILE_SIZE) over.push(all[i]);
+                }
+                if (over.length || total > MAX_REQ_SIZE){
+                    var html='';
+                    if (over.length){
+                        html += '<div class="mb-2">개별 파일은 최대 <b>'+MAX_FILE_SIZE_MB+'MB</b>까지 허용합니다.</div><ul>';
+                        over.forEach(function(f){ html+='<li>'+f.name+' — '+fmt(f.size)+'</li>'; });
+                        html += '</ul>';
+                    }
+                    if (total > MAX_REQ_SIZE){
+                        html += '<div class="mt-2">선택한 파일 합계가 <b>'+MAX_REQ_SIZE_MB+'MB</b>를 초과했습니다. (현재 '+fmt(total)+')</div>';
+                    }
+                    showSizeModal(html);
+                    return false;
+                }
+                return true;
+            }
+
+            function syncHiddenInput(){
+                var dt = new DataTransfer();
+                selected.forEach(function(f){ dt.items.add(f); });
+                $input[0].files = dt.files;
+            }
+
+            function render(){
+                $list.empty();
+                if (selected.size === 0){
+                    $list.append('<li class="list-group-item text-muted">선택된 파일이 없습니다.</li>');
+                    return;
+                }
+                selected.forEach(function(f, k){
+                    var $li = $('<li class="list-group-item d-flex justify-content-between align-items-center"></li>');
+                    $li.append('<span>'+f.name+' <small class="text-muted">— '+fmt(f.size)+'</small></span>');
+                    var $del = $('<button type="button" class="btn btn-sm btn-outline-danger">삭제</button>');
+                    $del.on('click', function(){
+                        selected.delete(k);
+                        syncHiddenInput(); render();
+                    });
+                    $li.append($del);
+                    $list.append($li);
+                });
+            }
+
+            function addFiles(fileList){
+                var arr = Array.from(fileList || []);
+                // 중복 제거
+                var unique = arr.filter(function(f){ return !selected.has(keyOf(f)); });
+                if (unique.length === 0) return;
+
+                if (!validate(unique)) return;
+
+                unique.forEach(function(f){ selected.set(keyOf(f), f); });
+                syncHiddenInput(); render();
+            }
+
+            // 버튼 → 파일 선택
+            $btn.on('click', function(){ $picker.trigger('click'); });
+            $picker.on('change', function(){ addFiles(this.files); this.value=''; });
+
+            // 드래그&드롭
+            $dz.on('dragover', function(e){ e.preventDefault(); e.originalEvent.dataTransfer.dropEffect='copy'; $dz.addClass('bg-light'); });
+            $dz.on('dragleave', function(){ $dz.removeClass('bg-light'); });
+            $dz.on('drop', function(e){
+                e.preventDefault(); $dz.removeClass('bg-light');
+                addFiles(e.originalEvent.dataTransfer.files);
+            });
+
+            // 제출 전 한 번 더 검사(이중 안전장치)
+            $form.on('submit', function(e){
+                if (!validate([])){ e.preventDefault(); e.stopPropagation(); }
+            });
+
+            render(); // 초기 렌더
+        }
+
+        // 페이지에 맞춰 두 번 바인딩
+        $(function(){
+            // create.html
+            wirePicker({
+                btnId:'#addBtn-create',
+                dropzoneId:'#dz-create',
+                pickerId:'#picker-create',
+                submitInputId:'#files-create',
+                listId:'#list-create'
+            });
+
+            // update.html
+            wirePicker({
+                btnId:'#addBtn-update',
+                dropzoneId:'#dz-update',
+                pickerId:'#picker-update',
+                submitInputId:'#files-update',
+                listId:'#list-update'
+            });
+        });
+    })();
+</script>
 
 
 

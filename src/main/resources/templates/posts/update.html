@@ -5,49 +5,80 @@
     <title>게시글 수정</title>
     <link rel="stylesheet" th:href="@{/dist/css/adminlte.min.css}">
 </head>
-<body class="container mt-4">
-<div th:replace="fragments/alerts :: alerts"></div>
-<h2>게시글 수정</h2>
+<body class="d-flex justify-content-center align-items-center vh-100">
+<div class="container mt-5">
+    <div th:replace="fragments/alerts :: alerts"></div>
 
-<form th:action="@{/posts/{id}/update(id=${post.id})}"
-      th:object="${post}" method="post" enctype="multipart/form-data">
+    <div class="card">
+        <div class="card-header">게시글 수정</div>
+        <div class="card-body">
 
-    <!-- 제목 -->
-    <div class="mb-3">
-        <label for="title" class="form-label">제목</label>
-        <input type="text" th:field="*{title}" class="form-control" id="title"/>
+            <form th:action="@{/posts/{id}/update(id=${post.id})}"
+                  th:object="${post}" method="post" enctype="multipart/form-data">
+
+                <!-- 제목 -->
+                <div class="mb-3">
+                    <label for="title" class="form-label">제목</label>
+                    <input type="text" th:field="*{title}" class="form-control" id="title"/>
+                </div>
+
+                <!-- 본문 -->
+                <div class="mb-3">
+                    <label for="body" class="form-label">내용</label>
+                    <textarea th:field="*{body}" class="form-control" id="body" rows="5"></textarea>
+                </div>
+
+                <!-- 기존 첨부파일 -->
+                <div th:if="${post.files}">
+                    <label>기존 첨부파일</label>
+
+                    <ul id="existing-list" class="list-group mb-2">
+                        <li class="list-group-item d-flex justify-content-between align-items-center"
+                            th:each="f : ${post.files}"
+                            th:attr="data-id=${f.id}">
+      <span class="file-label">
+        <a th:href="@{/download/{id}(id=${f.id})}" th:text="${f.originalFilename}">filename</a>
+        <small class="text-muted">
+          (<span th:text="${#numbers.formatDecimal(f.size/1048576.0, 1, 2)}">0.00</span> MB)
+        </small>
+      </span>
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-danger btn-del-existing">삭제</button>
+                                <button type="button" class="btn btn-outline-secondary btn-undo-existing d-none">취소</button>
+                            </div>
+                        </li>
+                    </ul>
+
+                    <small class="text-muted">삭제를 누르면 ‘삭제 예정’으로 표시됩니다. 저장을 눌러야 실제로 반영돼요.</small>
+                </div>
+                <!-- 새 파일 업로드 (update용 ID로 정리) -->
+                <div class="form-group mt-3">
+                    <label class="form-label">첨부파일</label>
+
+                    <div id="dz-update" class="border rounded p-3 text-center">
+                        <div class="mb-2">새 파일을 여기로 끌어다 놓거나</div>
+                        <button type="button" id="addBtn-update" class="btn btn-outline-secondary btn-sm">파일 추가</button>
+                    </div>
+                    <small class="text-muted">여러 번 눌러서 계속 추가할 수 있어요</small>
+
+                    <!-- 제출 대상(hidden) + 픽커 -->
+                    <input id="files-update" name="files" type="file" class="d-none" multiple>
+                    <input id="picker-update" type="file" class="d-none" multiple>
+
+                    <!-- 선택 목록 -->
+                    <ul id="list-update" class="list-group mt-2"></ul>
+                </div>
+
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">저장</button>
+                    <a th:href="@{/posts/{id}(id=${post.id})}" class="btn btn-secondary">취소</a>
+                </div>
+            </form>
+
+        </div>
     </div>
+</div>
 
-    <!-- 본문 -->
-    <div class="mb-3">
-        <label for="body" class="form-label">내용</label>
-        <textarea th:field="*{body}" class="form-control" id="body" rows="5"></textarea>
-    </div>
-
-    <!-- 기존 첨부파일 -->
-    <div th:if="${post.files}">
-        <label>기존 첨부파일</label>
-        <ul class="list-unstyled">
-            <li th:each="f : ${post.files}">
-                <label class="form-check-label">
-                    <input class="form-check-input" type="checkbox" name="deleteFileIds" th:value="${f.id}">
-                    <span th:text="${f.originalFilename}">filename</span>
-                    <small>(<span th:text="${f.size}">0</span> bytes)</small>
-                </label>
-            </li>
-        </ul>
-        <small class="text-muted">삭제할 파일만 체크하세요. 체크 없으면 기존 파일 유지됩니다.</small>
-    </div>
-
-    <!-- 새 파일 업로드 -->
-    <div class="mb-3">
-        <label for="files" class="form-label">새 파일 첨부</label>
-        <input type="file" id="files" name="files" multiple class="form-control"/>
-    </div>
-
-    <button type="submit" class="btn btn-primary">저장</button>
-    <a th:href="@{/posts/{id}(id=${post.id})}" class="btn btn-secondary">취소</a>
-</form>
 
 <script th:src="@{/plugins/jquery/jquery.min.js}"></script>
 <script th:src="@{/plugins/bootstrap/js/bootstrap.bundle.min.js}"></script>
@@ -128,6 +159,201 @@
             }
         });
     })();
+</script>
+
+
+
+
+<!--드래그앤드롭, 첨부파일 추가방식 누적방법-->
+
+<script>
+    (function(){
+        // 서버 yml과 숫자 맞추기
+        var MAX_FILE_SIZE_MB = 20;
+        var MAX_REQ_SIZE_MB  = 25;
+        var MAX_FILE_SIZE = MAX_FILE_SIZE_MB*1024*1024;
+        var MAX_REQ_SIZE  = MAX_REQ_SIZE_MB*1024*1024;
+
+        function fmt(b){var u=['B','KB','MB','GB'],i=0,n=b;while(n>=1024&&i<u.length-1){n/=1024;i++;}return (n<10&&i>0?n.toFixed(1):Math.round(n))+' '+u[i];}
+        function keyOf(f){ return [f.name,f.size,f.lastModified].join('#'); }
+
+        function showSizeModal(html){
+            $('#sizeLimitBody').html(html);
+            $('#sizeLimitModal').modal('show');
+        }
+
+        function wirePicker(opts){
+            var $form  = $(opts.formSelector || 'form');
+            var $btn   = $(opts.btnId);
+            var $dz    = $(opts.dropzoneId);
+            var $picker= $(opts.pickerId);      // 매번 고르는 숨은 picker
+            var $input = $(opts.submitInputId); // 실제 제출되는 hidden input (name="files")
+            var $list  = $(opts.listId);
+
+            if(!$btn.length || !$picker.length || !$input.length || !$list.length) return;
+
+            var selected = new Map(); // key -> File
+
+            function validate(files){
+                var total = 0, over = [];
+                var all = Array.from(selected.values()).concat(Array.from(files));
+                for(var i=0;i<all.length;i++){
+                    total += all[i].size;
+                    if (all[i].size > MAX_FILE_SIZE) over.push(all[i]);
+                }
+                if (over.length || total > MAX_REQ_SIZE){
+                    var html='';
+                    if (over.length){
+                        html += '<div class="mb-2">개별 파일은 최대 <b>'+MAX_FILE_SIZE_MB+'MB</b>까지 허용합니다.</div><ul>';
+                        over.forEach(function(f){ html+='<li>'+f.name+' — '+fmt(f.size)+'</li>'; });
+                        html += '</ul>';
+                    }
+                    if (total > MAX_REQ_SIZE){
+                        html += '<div class="mt-2">선택한 파일 합계가 <b>'+MAX_REQ_SIZE_MB+'MB</b>를 초과했습니다. (현재 '+fmt(total)+')</div>';
+                    }
+                    showSizeModal(html);
+                    return false;
+                }
+                return true;
+            }
+
+            function syncHiddenInput(){
+                var dt = new DataTransfer();
+                selected.forEach(function(f){ dt.items.add(f); });
+                $input[0].files = dt.files;
+            }
+
+            function render(){
+                $list.empty();
+                if (selected.size === 0){
+                    $list.append('<li class="list-group-item text-muted">선택된 파일이 없습니다.</li>');
+                    return;
+                }
+                selected.forEach(function(f, k){
+                    var $li = $('<li class="list-group-item d-flex justify-content-between align-items-center"></li>');
+                    $li.append('<span>'+f.name+' <small class="text-muted">— '+fmt(f.size)+'</small></span>');
+                    var $del = $('<button type="button" class="btn btn-sm btn-outline-danger">삭제</button>');
+                    $del.on('click', function(){
+                        selected.delete(k);
+                        syncHiddenInput(); render();
+                    });
+                    $li.append($del);
+                    $list.append($li);
+                });
+            }
+
+            function addFiles(fileList){
+                var arr = Array.from(fileList || []);
+                // 중복 제거
+                var unique = arr.filter(function(f){ return !selected.has(keyOf(f)); });
+                if (unique.length === 0) return;
+
+                if (!validate(unique)) return;
+
+                unique.forEach(function(f){ selected.set(keyOf(f), f); });
+                syncHiddenInput(); render();
+            }
+
+            // 버튼 → 파일 선택
+            $btn.on('click', function(){ $picker.trigger('click'); });
+            $picker.on('change', function(){ addFiles(this.files); this.value=''; });
+
+            // 드래그&드롭
+            $dz.on('dragover', function(e){ e.preventDefault(); e.originalEvent.dataTransfer.dropEffect='copy'; $dz.addClass('bg-light'); });
+            $dz.on('dragleave', function(){ $dz.removeClass('bg-light'); });
+            $dz.on('drop', function(e){
+                e.preventDefault(); $dz.removeClass('bg-light');
+                addFiles(e.originalEvent.dataTransfer.files);
+            });
+
+            // 제출 전 한 번 더 검사(이중 안전장치)
+            $form.on('submit', function(e){
+                if (!validate([])){ e.preventDefault(); e.stopPropagation(); }
+            });
+
+            render(); // 초기 렌더
+        }
+
+        // 페이지에 맞춰 두 번 바인딩
+        $(function(){
+            // create.html
+            wirePicker({
+                btnId:'#addBtn-create',
+                dropzoneId:'#dz-create',
+                pickerId:'#picker-create',
+                submitInputId:'#files-create',
+                listId:'#list-create'
+            });
+
+            // update.html
+            wirePicker({
+                btnId:'#addBtn-update',
+                dropzoneId:'#dz-update',
+                pickerId:'#picker-update',
+                submitInputId:'#files-update',
+                listId:'#list-update'
+            });
+        });
+    })();
+</script>
+
+
+<!--“삭제” 클릭 → 해당 파일 ID로 hidden input deleteFileIds=ID를 폼에 추가 → 리스트 아이템에 취소 버튼/빨간 표시/취소 가능.
+
+“취소” 클릭 → hidden input 제거 → 원상복구.-->
+<script>
+    $(function(){
+        var $form = $('form');                // 이 페이지의 수정 폼
+        var marked = new Map();               // fileId -> jQuery(hidden input)
+
+        function markDelete($li, id){
+            if (marked.has(id)) return;
+
+            // 폼에 숨은 input 추가: deleteFileIds=ID
+            var $hidden = $('<input>', {
+                type: 'hidden',
+                name: 'deleteFileIds',
+                value: id,
+                'data-file-id': id
+            });
+            $form.append($hidden);
+            marked.set(id, $hidden);
+
+            // UI: 삭제 예정 표시
+            $li.addClass('list-group-item-danger');
+            var $label = $li.find('.file-label');
+            // <del> 없으면 감싸기
+            if ($label.find('del').length === 0) {
+                $label.wrapInner('<del/>');
+            }
+            $li.find('.btn-del-existing').addClass('d-none');
+            $li.find('.btn-undo-existing').removeClass('d-none');
+        }
+
+        function unmarkDelete($li, id){
+            var $hidden = marked.get(id);
+            if ($hidden) { $hidden.remove(); marked.delete(id); }
+
+            $li.removeClass('list-group-item-danger');
+            // <del> 해제
+            var $label = $li.find('.file-label');
+            $label.find('del').contents().unwrap();
+            $li.find('.btn-del-existing').removeClass('d-none');
+            $li.find('.btn-undo-existing').addClass('d-none');
+        }
+
+        // 클릭 핸들러 바인딩
+        $('#existing-list').on('click', '.btn-del-existing', function(){
+            var $li = $(this).closest('li');
+            var id = $li.data('id');
+            markDelete($li, id);
+        });
+        $('#existing-list').on('click', '.btn-undo-existing', function(){
+            var $li = $(this).closest('li');
+            var id = $li.data('id');
+            unmarkDelete($li, id);
+        });
+    });
 </script>
 
 </body>

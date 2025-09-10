@@ -44,7 +44,8 @@
                         <ul class="mb-0">
                             <li th:each="f : ${post.files}">
                                 <a th:href="@{/download/{id}(id=${f.id})}" th:text="${f.originalFilename}">파일명</a>
-                                (<span th:text="${f.size}">0</span> bytes)
+                                (<span th:text="${#numbers.formatDecimal(f.size / 1048576.0, 1, 2)} + ' MB'">0.00 MB</span>)
+
                             </li>
                         </ul>
                     </div>
