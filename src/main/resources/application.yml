@@ -17,24 +17,29 @@ spring:
   thymeleaf:
     cache: false
 
+  servlet:
+    multipart:            # ✅ spring 아래로 이동
+      enabled: true
+      max-file-size: 20MB     # 2.2MB 충분히 통과
+      max-request-size: 25MB
 
-logging.level:
-  org.springframework.security: DEBUG        # 시큐리티 전 과정 디버그 (인증/비번매칭/리다이렉트)
-  org.hibernate.SQL: DEBUG                  # 이미 있음: 실행된 SQL
-  org.hibernate.type.descriptor.sql.BasicBinder: trace  # 바인딩된 파라미터 값(=?에 뭐 들어갔는지)까지 확인
-  com.zaxxer.hikari: INFO                   # 커넥션풀 상태
-  logging.level.org.hibernate.orm.jdbc.bind: trace
 server:
   error:
     include-message: always
     include-binding-errors: always
+  tomcat:
+    max-http-form-post-size: 25MB  # ✅ 폼 POST 본문 한도(기본 2MB 근처)
+    max-swallow-size: 25MB         # 업로드 중단 시 잔여 바디 처리 한도
 
-
-servlet:
-  multipart:
-    max-file-size: 50MB
-    max-request-size: 50MB
+logging:
+  level:                 # ✅ 깔끔하게 정리
+    com.bjw.testtable: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.hibernate.orm.jdbc.bind: TRACE
+    com.zaxxer.hikari: INFO
 
 app:
   upload:
-    dir: /Users/baekjiwon/uploads  # 맥 경로 예시 (쓰기권한 있는 곳)
+    dir: /Users/baekjiwon/uploads

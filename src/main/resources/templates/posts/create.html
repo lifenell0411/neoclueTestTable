@@ -7,6 +7,7 @@
 </head>
 <body class="d-flex justify-content-center align-items-center vh-100">
 <div class="container mt-5">
+    <div th:replace="fragments/alerts :: alerts"></div>
     <div class="card">
         <div class="card-header">새 글 작성</div>
         <div class="card-body">
@@ -31,11 +32,99 @@
                     <small class="text-muted">여러 파일 선택 가능</small>
                 </div>
 
+
+
                 <button type="submit" class="btn btn-primary">등록</button>
                 <a th:href="@{/posts/list}" class="btn btn-secondary">취소</a>
             </form>
         </div>
     </div>
 </div>
+
+
+<script th:src="@{/plugins/jquery/jquery.min.js}"></script>
+<script th:src="@{/plugins/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/dist/js/adminlte.min.js}"></script>
+
+<!-- ⬇⬇⬇ 이 주석 아래부터 복붙 -->
+<!-- [1] Bootstrap 모달 -->
+<div class="modal fade" id="sizeLimitModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">파일 크기 제한 초과</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="닫기">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="sizeLimitBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-dismiss="modal">확인</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- [2] 파일 사이즈 검사 스크립트 -->
+<script>
+    (function(){
+        // ⚠️ 서버 yml(spring.servlet.multipart)과 숫자를 반드시 맞추세요.
+        var MAX_FILE_SIZE_MB = 20;  // 파일 1개 최대
+        var MAX_REQ_SIZE_MB  = 25;  // 요청 전체(합계) 최대
+        var MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
+        var MAX_REQ_SIZE  = MAX_REQ_SIZE_MB  * 1024 * 1024;
+
+        function fmt(b){
+            var u=['B','KB','MB','GB'], i=0, n=b;
+            while(n>=1024 && i<u.length-1){ n/=1024; i++; }
+            return (n<10&&i>0? n.toFixed(1):Math.round(n)) + ' ' + u[i];
+        }
+
+        function validate($input){
+            var f = $input[0].files;
+            if(!f || f.length===0) return true;
+
+            var total = 0, over = [];
+            for(var i=0;i<f.length;i++){
+                total += f[i].size;
+                if (f[i].size > MAX_FILE_SIZE) over.push(f[i]);
+            }
+
+            if (over.length || total > MAX_REQ_SIZE){
+                var html = '';
+                if (over.length){
+                    html += '<div class="mb-2">개별 파일은 최대 <b>'+MAX_FILE_SIZE_MB+'MB</b>까지 허용합니다.</div><ul>';
+                    for (var j=0;j<over.length;j++){
+                        html += '<li>'+over[j].name+' — '+fmt(over[j].size)+'</li>';
+                    }
+                    html += '</ul>';
+                }
+                if (total > MAX_REQ_SIZE){
+                    html += '<div class="mt-2">선택한 파일 합계가 <b>'+MAX_REQ_SIZE_MB+'MB</b>를 초과했습니다. (현재 '+fmt(total)+')</div>';
+                }
+                $('#sizeLimitBody').html(html);
+                $('#sizeLimitModal').modal('show');
+                $input.val(''); // 잘못 선택한 파일 비우기
+                return false;
+            }
+            return true;
+        }
+
+        $(function(){
+            // 두 페이지 모두 input id="files"를 쓰고 있으니 이걸 기준으로 훅킹
+            var $input = $('#files');
+            if($input.length){
+                $input.on('change', function(){ validate($input); });
+                $input.closest('form').on('submit', function(e){
+                    if(!validate($input)){ e.preventDefault(); e.stopPropagation(); }
+                });
+            }
+        });
+    })();
+</script>
+
+
+
+
 </body>
 </html>

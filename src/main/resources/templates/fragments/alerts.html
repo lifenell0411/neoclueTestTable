@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<body>
+<div th:fragment="alerts">
+    <!-- 에러 -->
+    <div th:if="${error != null or param.error != null}"
+         class="alert alert-danger alert-dismissible fade show" role="alert">
+        <span th:text="${error != null ? error : param.error}">에러가 발생했습니다.</span>
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+
+    <!-- 성공/일반 -->
+    <div th:if="${msg != null or param.msg != null}"
+         class="alert alert-success alert-dismissible fade show" role="alert">
+        <span th:text="${msg != null ? msg : param.msg}">처리가 완료되었습니다.</span>
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+</div>
+</body>
+</html>

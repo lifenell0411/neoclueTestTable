@@ -1,7 +1,7 @@
 package com.bjw.testtable.security;
 
-import com.bjw.testtable.domain.post.entity.Post;
-import com.bjw.testtable.domain.post.repository.PostRepository;
+import com.bjw.testtable.domain.post.Post;
+import com.bjw.testtable.post.repository.PostRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;

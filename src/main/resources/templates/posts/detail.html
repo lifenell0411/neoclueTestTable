@@ -9,20 +9,17 @@
     <!-- (선택) 아이콘 필요하면 주석 해제
     <link rel="stylesheet" th:href="@{/plugins/fontawesome-free/css/all.min.css}">
     -->
-    <style>
-        /* 카드 폭 제한 + 테두리 강조 */
-        .post-card { max-width: 860px; }
-        .post-body { white-space: normal; }
-    </style>
+
 </head>
 <body class="bg-light">
 
 <!-- 세로/가로 중앙 정렬 래퍼 -->
 <div class="container min-vh-100 d-flex align-items-center">
+
     <div class="row justify-content-center w-100">
         <div class="col-12 col-lg-10">
 
-
+            <div th:replace="fragments/alerts :: alerts"></div>
             <!-- 카드: 검은 테두리 + 은은한 그림자 -->
             <div class="card post-card border border-dark shadow">
                 <div class="card-body">
@@ -35,8 +32,6 @@
                         작성일:
                         <span th:text="${#temporals.format(post.createdAt, 'yyyy-MM-dd HH:mm:ss')}">2025-09-08 17:07:08</span>
                     </p>
-                    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
-                    <div th:if="${msg}" class="alert alert-success" th:text="${msg}"></div>
 
                     <!-- 본문: 블록 유지 -->
                     <div class="post-body border rounded p-3 mb-4" th:utext="${post.body}">
@@ -74,6 +69,8 @@
         </div>
     </div>
 </div>
-
+<script th:src="@{/plugins/jquery/jquery.min.js}"></script>
+<script th:src="@{/plugins/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/dist/js/adminlte.min.js}"></script>
 </body>
 </html>
