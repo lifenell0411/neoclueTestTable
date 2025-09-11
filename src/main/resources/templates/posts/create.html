@@ -8,6 +8,7 @@
     <script th:src="@{/se2/js/service/HuskyEZCreator.js}" charset="utf-8"></script>
     <link rel="preload" as="document" href="/se2/SmartEditor2Skin.html">
 
+
     <style>
         /* 가로폭 흔들림 방지(세로 스크롤 항상 예약) */
         html { overflow-y: scroll; }
@@ -18,9 +19,12 @@
 
         /* 원본 textarea는 레이아웃에서 제외 */
         #body{
-            position:absolute !important; left:-99999px !important;
-            height:0 !important; margin:0 !important; padding:0 !important;
-            overflow:hidden !important; visibility:hidden !important;
+            /* 레이아웃 안에 두고, 눈에만 안 보이게 */
+            visibility: hidden;
+            height: var(--se2-area);   /* 예: 420px */
+            width: 100%;
+            margin: 0; padding: 0; border: 0;
+            box-sizing: border-box;
         }
 
         /* 로딩 중 카드 살짝 숨김(깜빡임 마스킹) */
@@ -49,7 +53,7 @@
                 <div class="form-group">
                     <label for="body">본문</label>
                     <div id="editor-slot">
-                        <textarea id="body" th:field="*{body}" class="form-control" required></textarea>
+                        <textarea id="body" th:field="*{body}" required></textarea>
                     </div>
                 </div>
 
@@ -80,8 +84,10 @@
 
 
 
-                <button type="submit" class="btn btn-primary">등록</button>
-                <a th:href="@{/posts/list}" class="btn btn-secondary">취소</a>
+                <div class="d-flex justify-content-end mt-3">
+                    <button type="submit" class="btn btn-primary">등록</button>
+                    <a th:href="@{/posts/list}" class="btn btn-secondary ml-2">취소</a>
+                </div>
             </form>
         </div>
     </div>
@@ -125,10 +131,32 @@
 <!-- body 하단 -->
 <!-- 스킨을 미리 당겨오면 초기 지연이 줄어듭니다 -->
 
-
 <script th:inline="javascript">
     var oEditors = [];
     var skinUri = /*[[@{/se2/SmartEditor2Skin.html}]]*/ '/se2/SmartEditor2Skin.html';
+
+    function fixSE2InnerWidth(){
+        var iframe = document.querySelector('#editor-slot iframe');
+        if(!iframe) return;
+        var doc = iframe.contentDocument || iframe.contentWindow?.document;
+        if(!doc) return;
+
+        // 이미 주입했으면 중복 방지
+        if (doc.getElementById('se2-width-fix')) return;
+
+        var style = doc.createElement('style');
+        style.id = 'se2-width-fix';
+        style.textContent = `
+      html, body { width:100% !important; overflow-x:hidden !important; }
+      /* 스킨 내부 래퍼들을 전부 100%로 */
+      .se2_mwrapper, .se2_inwrap, .se2_workarea, .se2_workspace,
+      .se2_editor, .se2_input_area, .se2_iframe, .se2_ui_layout,
+      .se2_container, .se2_canvas, .se2_wysiwyg_area {
+        width:100% !important; max-width:100% !important;
+      }
+    `;
+        doc.head.appendChild(style);
+    }
 
     nhn.husky.EZCreator.createInIFrame({
         oAppRef: oEditors,
@@ -137,26 +165,31 @@
         fCreator: "createSEditor2",
         htParams: { bUseToolbar:true, bUseVerticalResizer:false, bUseModeChanger:true },
         fOnAppLoad: function () {
-            // 편집영역을 가드 높이와 정확히 맞춤 → 전환 점프 제거
+            // 높이 맞추기
             var H = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--se2-area')) || 420;
             try { oEditors.getById["body"].exec("RESIZE_EDITING_AREA", [H]); } catch(e){}
 
-            // 자리 선고정 해제(이제 실제 에디터가 자리를 잡았음)
+            // ★ iFrame 내부 폭 강제 주입
+            // 약간 늦게 한 번 더 실행해서 초기 레이아웃 이후도 덮어쓴다
+            fixSE2InnerWidth();
+            requestAnimationFrame(fixSE2InnerWidth);
+
+            // 슬롯 잠금 해제 + 가운데 정렬 전환(네 코드 유지)
             var slot = document.getElementById('editor-slot');
             if (slot) slot.style.minHeight = '0';
-
-            // 이제 화면 보여주고, 원하면 가운데 정렬로 전환
             document.body.classList.remove('is-loading');
             document.body.classList.add('align-items-center','min-vh-100');
         }
     });
 
-    // 제출 시 에디터 내용 반영
+    // 창 크기 변경 시도 내부가 px로 돌아가면 다시 강제
+    window.addEventListener('resize', function(){ requestAnimationFrame(fixSE2InnerWidth); });
+
+    // 제출 시 본문 반영(네 코드 유지)
     document.getElementById('postForm')?.addEventListener('submit', function(){
         try { oEditors.getById["body"]?.exec("UPDATE_CONTENTS_FIELD", []); } catch(e){}
     });
 </script>
-
 
 
 <script>

@@ -40,7 +40,8 @@
 
                     <!-- 첨부파일 -->
                     <div th:if="${post.files != null and #lists.size(post.files) > 0}" class="mb-4">
-                        <h5 class="mb-2">첨부파일</h5>
+                        <h5 class="mb-2" style="padding-left:1.25rem">첨부파일</h5>
+
                         <ul class="mb-0">
                             <li th:each="f : ${post.files}">
                                 <a th:href="@{/download/{id}(id=${f.id})}" th:text="${f.originalFilename}">파일명</a>
