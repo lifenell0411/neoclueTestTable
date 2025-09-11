@@ -6,6 +6,15 @@
     <link rel="stylesheet" th:href="@{/dist/css/adminlte.min.css}">
     <!-- head 안 -->
     <script th:src="@{/se2/js/service/HuskyEZCreator.js}" charset="utf-8"></script>
+    <style>
+        /* 페이지 높이 변화로 인한 스크롤 재앵커링 방지 */
+        body { overflow-anchor: none; }
+
+        /* 에디터가 붙기 전 잠깐 동안만: 보이진 않지만 '공간'은 차지 */
+        #body { visibility: hidden; height: 420px; } /* 최종 에디터 높이에 맞춰 주세요 */
+    </style>
+
+
 
 </head>
 
@@ -103,13 +112,36 @@
 <script th:inline="javascript">
     var oEditors = [];
     var skinUri = /*[[@{/se2/SmartEditor2Skin.html}]]*/ '/se2/SmartEditor2Skin.html';
+
     nhn.husky.EZCreator.createInIFrame({
-        oAppRef: oEditors, elPlaceHolder: "body", sSkinURI: skinUri, fCreator: "createSEditor2"
+        oAppRef: oEditors,
+        elPlaceHolder: "body",
+        sSkinURI: skinUri,
+        fCreator: "createSEditor2",
+        fOnAppLoad: function () {
+            // 에디터가 붙었으면 원본 textarea는 완전히 제거(공간 중복 방지)
+            var ta = document.getElementById('body');
+            ta.style.display = 'none';
+
+            // 에디터가 포커스 훔쳐가도 스크롤 튐 방지(제목으로 돌려놓기)
+            setTimeout(function(){ document.getElementById('title')?.focus(); }, 0);
+        }
     });
-    document.querySelector('form').addEventListener('submit', function(){
-        oEditors.getById["body"]?.exec("UPDATE_CONTENTS_FIELD", []);
+
+    // 제출 시 에디터 내용을 textarea에 반영
+    document.getElementById('postForm').addEventListener('submit', function(){
+        try { oEditors.getById["body"]?.exec("UPDATE_CONTENTS_FIELD", []); } catch(e){}
     });
+
+    // (안전망) 만약 에디터 로딩 실패 시 1.5초 뒤 textarea를 보여줘 사용 가능하게
+    setTimeout(function(){
+        if (!document.querySelector('#postForm iframe')) {
+            var ta = document.getElementById('body');
+            ta.style.visibility = 'visible';
+        }
+    }, 1500);
 </script>
+
 
 
 <script>

@@ -95,11 +95,10 @@
                                     <tbody>
                                     <tr th:each="p : ${posts.content}">
                                         <td th:text="${p.id}"></td>
-
                                         <td>
-                                            <a th:href="@{'/posts/' + ${p.id}}" th:text="${p.title}"></a>
+                                            <a th:href="@{/posts/{id}(id=${p.id})}" th:text="${p.title}">제목</a>
                                         </td>
-                                        <td th:text="${p.bodyPreview}">본문 미리보기…</td>
+                                        <td th:text="${p.bodyPreview}">미리보기</td> <!-- 👈 이거 하나면 끝 -->
                                         <td th:text="${p.authorUserId}"></td>
                                         <td th:text="${#temporals.format(p.createdAt, 'yyyy-MM-dd HH:mm')}"></td>
                                         <td th:text="${#temporals.format(p.updateAt, 'yyyy-MM-dd HH:mm')}"></td>

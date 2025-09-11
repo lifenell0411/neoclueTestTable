@@ -6,6 +6,7 @@ import com.bjw.testtable.file.repository.FileRepository;
 import com.bjw.testtable.file.storage.FileStorageResult;
 import com.bjw.testtable.file.storage.FileStorageService;
 import com.bjw.testtable.post.repository.PostRepository;
+import com.bjw.testtable.util.Util;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -33,7 +34,7 @@ public class PostServiceImpl implements PostService {
     private final PostRepository postRepository;
     private final FileRepository fileRepository;
     private final FileStorageService fileStorageService;
-
+    private final Util html;
 
     @Override
     @Transactional
@@ -106,8 +107,7 @@ public class PostServiceImpl implements PostService {
                 .id(p.getId())
                 .title(p.getTitle())
                 .authorUserId(p.getUserId())
-                .bodyPreview(p.getBody() == null ? "" :
-                        (p.getBody().length() > 80 ? p.getBody().substring(0, 80) + "…" : p.getBody()))
+                .bodyPreview(html.preview(p.getBody(), 120))
                 .createdAt(p.getCreatedAt())
                 .updateAt(p.getUpdateAt())
                 .build());
