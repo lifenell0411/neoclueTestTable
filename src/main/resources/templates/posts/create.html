@@ -4,14 +4,19 @@
     <meta charset="UTF-8">
     <title>글쓰기</title>
     <link rel="stylesheet" th:href="@{/dist/css/adminlte.min.css}">
+    <!-- head 안 -->
+    <script th:src="@{/se2/js/service/HuskyEZCreator.js}" charset="utf-8"></script>
+
 </head>
+
 <body class="d-flex justify-content-center align-items-center vh-100">
 <div class="container mt-5">
     <div th:replace="fragments/alerts :: alerts"></div>
     <div class="card">
         <div class="card-header">새 글 작성</div>
         <div class="card-body">
-            <form th:action="@{/posts/create}" method="post" enctype="multipart/form-data" th:object="${post}">
+            <form th:action="@{/posts/create}" method="post" enctype="multipart/form-data"
+                  th:object="${post}" id="postForm" novalidate>
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
 
                 <div class="form-group">
@@ -36,7 +41,7 @@
 
                     <!-- 드롭존 + 버튼 -->
                     <div id="dz-create" class="border rounded p-3 text-center">
-                        <div class="mb-2">파일을 여기로 끌어다 놓거나</div>
+                        <div class="mb-2">파일을 여기로 끌어다 놓거나 파일 추가버튼을 클릭하세요.</div>
                         <button type="button" id="addBtn-create" class="btn btn-outline-secondary btn-sm">파일 추가</button>
                     </div>
                     <small class="text-muted">여러 번 눌러서 계속 추가할 수 있어요</small>
@@ -82,6 +87,62 @@
         </div>
     </div>
 </div>
+
+
+
+
+
+
+
+
+<!--스마트에디터-->
+
+
+
+<!-- body 하단 -->
+<script th:inline="javascript">
+    var oEditors = [];
+    var skinUri = /*[[@{/se2/SmartEditor2Skin.html}]]*/ '/se2/SmartEditor2Skin.html';
+    nhn.husky.EZCreator.createInIFrame({
+        oAppRef: oEditors, elPlaceHolder: "body", sSkinURI: skinUri, fCreator: "createSEditor2"
+    });
+    document.querySelector('form').addEventListener('submit', function(){
+        oEditors.getById["body"]?.exec("UPDATE_CONTENTS_FIELD", []);
+    });
+</script>
+
+
+<script>
+    (function(){
+        const form  = document.getElementById('postForm');
+        const title = document.getElementById('title');
+        const body  = document.getElementById('body');
+
+        function updateEditor(){
+            try { oEditors.getById["body"]?.exec("UPDATE_CONTENTS_FIELD", []); } catch(e){}
+        }
+
+        // 버튼 클릭 시 먼저 에디터 내용을 textarea에 반영
+        document.querySelector('button[type="submit"]').addEventListener('click', updateEditor);
+
+        // 폼 제출 시(엔터로 제출 등)도 한 번 더 반영하고 직접 검증
+        form.addEventListener('submit', function(e){
+            updateEditor();
+
+            if (!title.value.trim()){
+                alert('제목을 입력하세요.');
+                title.focus(); e.preventDefault(); return;
+            }
+            if (!body.value.trim()){
+                alert('본문을 입력하세요.');
+                // 에디터에 포커스 주고 싶으면:
+                try { oEditors.getById["body"]?.exec("FOCUS"); } catch(e){}
+                e.preventDefault(); return;
+            }
+        });
+    })();
+</script>
+
 
 <!-- [2] 파일 사이즈 검사 스크립트 -->
 <script>

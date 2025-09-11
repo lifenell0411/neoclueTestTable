@@ -34,7 +34,7 @@
                     </p>
 
                     <!-- 본문: 블록 유지 -->
-                    <div class="post-body border rounded p-3 mb-4" th:utext="${post.body}">
+                    <div class="post-body" th:utext="${post.body}"></div>
                         본문 내용
                     </div>
 
@@ -69,7 +69,7 @@
 
         </div>
     </div>
-</div>
+
 <script th:src="@{/plugins/jquery/jquery.min.js}"></script>
 <script th:src="@{/plugins/bootstrap/js/bootstrap.bundle.min.js}"></script>
 <script th:src="@{/dist/js/adminlte.min.js}"></script>
