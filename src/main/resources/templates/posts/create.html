@@ -6,20 +6,32 @@
     <link rel="stylesheet" th:href="@{/dist/css/adminlte.min.css}">
     <!-- head 안 -->
     <script th:src="@{/se2/js/service/HuskyEZCreator.js}" charset="utf-8"></script>
+    <link rel="preload" as="document" href="/se2/SmartEditor2Skin.html">
+
     <style>
-        /* 페이지 높이 변화로 인한 스크롤 재앵커링 방지 */
-        body { overflow-anchor: none; }
+        /* 가로폭 흔들림 방지(세로 스크롤 항상 예약) */
+        html { overflow-y: scroll; }
 
-        /* 에디터가 붙기 전 잠깐 동안만: 보이진 않지만 '공간'은 차지 */
-        #body { visibility: hidden; height: 420px; } /* 최종 에디터 높이에 맞춰 주세요 */
+        /* 에디터 자리 선고정: 편집영역 420 + 툴바/상태바 64 */
+        :root { --se2-area: 420px; --se2-chrome: 64px; }
+        #editor-slot { min-height: calc(var(--se2-area) + var(--se2-chrome)); }
+
+        /* 원본 textarea는 레이아웃에서 제외 */
+        #body{
+            position:absolute !important; left:-99999px !important;
+            height:0 !important; margin:0 !important; padding:0 !important;
+            overflow:hidden !important; visibility:hidden !important;
+        }
+
+        /* 로딩 중 카드 살짝 숨김(깜빡임 마스킹) */
+        .is-loading .card { opacity: 0; }
+        .card { transition: opacity .12s ease; }
     </style>
-
-
 
 </head>
 
-<body class="d-flex justify-content-center align-items-center vh-100">
-<div class="container mt-5">
+<body class="d-flex justify-content-center py-4 is-loading">
+<div class="container mt-10">
     <div th:replace="fragments/alerts :: alerts"></div>
     <div class="card">
         <div class="card-header">새 글 작성</div>
@@ -36,9 +48,11 @@
 
                 <div class="form-group">
                     <label for="body">본문</label>
-                    <textarea id="body" th:field="*{body}" class="form-control" rows="6" required></textarea>
-                    <div class="text-danger" th:if="${#fields.hasErrors('body')}" th:errors="*{body}"></div>
+                    <div id="editor-slot">
+                        <textarea id="body" th:field="*{body}" class="form-control" required></textarea>
+                    </div>
                 </div>
+
 
 
 
@@ -109,6 +123,9 @@
 
 
 <!-- body 하단 -->
+<!-- 스킨을 미리 당겨오면 초기 지연이 줄어듭니다 -->
+
+
 <script th:inline="javascript">
     var oEditors = [];
     var skinUri = /*[[@{/se2/SmartEditor2Skin.html}]]*/ '/se2/SmartEditor2Skin.html';
@@ -118,28 +135,26 @@
         elPlaceHolder: "body",
         sSkinURI: skinUri,
         fCreator: "createSEditor2",
+        htParams: { bUseToolbar:true, bUseVerticalResizer:false, bUseModeChanger:true },
         fOnAppLoad: function () {
-            // 에디터가 붙었으면 원본 textarea는 완전히 제거(공간 중복 방지)
-            var ta = document.getElementById('body');
-            ta.style.display = 'none';
+            // 편집영역을 가드 높이와 정확히 맞춤 → 전환 점프 제거
+            var H = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--se2-area')) || 420;
+            try { oEditors.getById["body"].exec("RESIZE_EDITING_AREA", [H]); } catch(e){}
 
-            // 에디터가 포커스 훔쳐가도 스크롤 튐 방지(제목으로 돌려놓기)
-            setTimeout(function(){ document.getElementById('title')?.focus(); }, 0);
+            // 자리 선고정 해제(이제 실제 에디터가 자리를 잡았음)
+            var slot = document.getElementById('editor-slot');
+            if (slot) slot.style.minHeight = '0';
+
+            // 이제 화면 보여주고, 원하면 가운데 정렬로 전환
+            document.body.classList.remove('is-loading');
+            document.body.classList.add('align-items-center','min-vh-100');
         }
     });
 
-    // 제출 시 에디터 내용을 textarea에 반영
-    document.getElementById('postForm').addEventListener('submit', function(){
+    // 제출 시 에디터 내용 반영
+    document.getElementById('postForm')?.addEventListener('submit', function(){
         try { oEditors.getById["body"]?.exec("UPDATE_CONTENTS_FIELD", []); } catch(e){}
     });
-
-    // (안전망) 만약 에디터 로딩 실패 시 1.5초 뒤 textarea를 보여줘 사용 가능하게
-    setTimeout(function(){
-        if (!document.querySelector('#postForm iframe')) {
-            var ta = document.getElementById('body');
-            ta.style.visibility = 'visible';
-        }
-    }, 1500);
 </script>
 
 

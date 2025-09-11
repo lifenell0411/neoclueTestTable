@@ -4,28 +4,56 @@
     <meta charset="UTF-8"/>
     <title>게시글 수정</title>
     <link rel="stylesheet" th:href="@{/dist/css/adminlte.min.css}">
+    <script th:src="@{/se2/js/service/HuskyEZCreator.js}" charset="utf-8"></script>
+
+
+    <style>
+        /* 가로폭 흔들림 방지(세로 스크롤 항상 예약) */
+        html { overflow-y: scroll; }
+
+        /* 에디터 자리 선고정: 편집영역 420 + 툴바/상태바 64 */
+        :root { --se2-area: 420px; --se2-chrome: 64px; }
+        #editor-slot { min-height: calc(var(--se2-area) + var(--se2-chrome)); }
+
+        /* 원본 textarea는 레이아웃에서 제외 */
+        #body{
+            position:absolute !important; left:-99999px !important;
+            height:0 !important; margin:0 !important; padding:0 !important;
+            overflow:hidden !important; visibility:hidden !important;
+        }
+
+        /* 로딩 중 카드 살짝 숨김(깜빡임 마스킹) */
+        .is-loading .card { opacity: 0; }
+        .card { transition: opacity .12s ease; }
+    </style>
+
+    <link rel="preload" as="document" href="/se2/SmartEditor2Skin.html">
 </head>
-<body class="d-flex justify-content-center align-items-center vh-100">
-<div class="container mt-5">
+<body class="d-flex justify-content-center py-4 is-loading">
+<div class="container mt-10">
     <div th:replace="fragments/alerts :: alerts"></div>
 
     <div class="card">
         <div class="card-header">게시글 수정</div>
         <div class="card-body">
 
-            <form th:action="@{/posts/{id}/update(id=${post.id})}"
+            <form id="postForm"
+                  th:action="@{/posts/{id}/update(id=${post.id})}"
                   th:object="${post}" method="post" enctype="multipart/form-data">
 
-                <!-- 제목 -->
+
+            <!-- 제목 -->
                 <div class="mb-3">
                     <label for="title" class="form-label">제목</label>
                     <input type="text" th:field="*{title}" class="form-control" id="title"/>
                 </div>
 
                 <!-- 본문 -->
-                <div class="mb-3">
-                    <label for="body" class="form-label">내용</label>
-                    <textarea th:field="*{body}" class="form-control" id="body" rows="5"></textarea>
+                <div class="form-group">
+                    <label for="body">본문</label>
+                    <div id="editor-slot">
+                        <textarea id="body" th:field="*{body}" class="form-control" required></textarea>
+                    </div>
                 </div>
 
                 <!-- 기존 첨부파일 -->
@@ -102,6 +130,46 @@
         </div>
     </div>
 </div>
+
+
+
+
+
+<!-- 스킨을 미리 당겨오면 초기 지연이 줄어듭니다 -->
+
+
+<script th:inline="javascript">
+    var oEditors = [];
+    var skinUri = /*[[@{/se2/SmartEditor2Skin.html}]]*/ '/se2/SmartEditor2Skin.html';
+
+    nhn.husky.EZCreator.createInIFrame({
+        oAppRef: oEditors,
+        elPlaceHolder: "body",
+        sSkinURI: skinUri,
+        fCreator: "createSEditor2",
+        htParams: { bUseToolbar:true, bUseVerticalResizer:false, bUseModeChanger:true },
+        fOnAppLoad: function () {
+            // 편집영역을 가드 높이와 정확히 맞춤 → 전환 점프 제거
+            var H = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--se2-area')) || 420;
+            try { oEditors.getById["body"].exec("RESIZE_EDITING_AREA", [H]); } catch(e){}
+
+            // 자리 선고정 해제(이제 실제 에디터가 자리를 잡았음)
+            var slot = document.getElementById('editor-slot');
+            if (slot) slot.style.minHeight = '0';
+
+            // 이제 화면 보여주고, 원하면 가운데 정렬로 전환
+            document.body.classList.remove('is-loading');
+            document.body.classList.add('align-items-center','min-vh-100');
+        }
+    });
+
+    // 제출 시 에디터 내용 반영
+    document.getElementById('postForm')?.addEventListener('submit', function(){
+        try { oEditors.getById["body"]?.exec("UPDATE_CONTENTS_FIELD", []); } catch(e){}
+    });
+</script>
+
+
 
 <!-- [2] 파일 사이즈 검사 스크립트 -->
 <script>
