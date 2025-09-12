@@ -98,7 +98,20 @@
 <script type="text/javascript" src="./js_src/fundamental/advanced/N_FindReplace.js" charset="utf-8"></script>
 <script type="text/javascript" src="./js_src/fundamental/advanced/SE2M_TableTemplate.js" charset="utf-8"></script>
 <script type="text/javascript" src="./js_src/util/N_DraggableLayer.js" charset="utf-8"></script>
-<!--Remove End-->
+
+    <style id="host-width-fix">
+        html, body { width:100% !important; overflow-x:hidden !important; }
+        /* 스킨 래퍼 전부 100% */
+        .se2_mwrapper, .se2_inwrap, .se2_workarea, .se2_workspace,
+        .se2_editor, .se2_input_area, .se2_ui_layout,
+        .se2_container, .se2_canvas, .se2_wysiwyg_area {
+            width:100% !important; max-width:100% !important;
+        }
+        /* table/td에 박힌 width 속성 무력화 */
+        table, td { width:100% !important; max-width:100% !important; }
+    </style>
+
+    <!--Remove End-->
 </head>
 <body>
 

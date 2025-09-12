@@ -5,10 +5,45 @@
     <title>게시글 목록</title>
     <link rel="stylesheet" th:href="@{/plugins/fontawesome-free/css/all.min.css}">
     <link rel="stylesheet" th:href="@{/dist/css/adminlte.min.css}">
-</head>
-<body class="hold-transition">
-<div class="d-flex justify-content-center align-items-center vh-100">
+    <!-- ✅ AJAX에서 쓸 CSRF 메타 -->
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:content="${_csrf.headerName}">
+    <script th:src="@{/se2/js/service/HuskyEZCreator.js}" charset="utf-8"></script>
+    <link rel="preload" as="document" href="/se2/SmartEditor2Skin.html">
+    <style>
+        .se2_container, .se2_ui_layout, .se2_workarea, .se2_workspace,
+        .se2_editor, .se2_input_area, .se2_canvas, .se2_wysiwyg_area, table, td { width:100% !important; max-width:100% !important; }
+    </style>
 
+    <style>
+        /* 바깥 iframe 자체를 먼저 100%로 */
+        #editor-slot iframe {
+            width: 100% !important;
+            min-width: 100% !important;
+            display: block;
+        }
+        /* 슬롯 자체도 100% 보장 */
+        #editor-slot { width: 100%; }
+    </style>
+
+
+    <style>
+        /* create는 리스트와 독립된 폭(원래 create 페이지 느낌) */
+        .create-inline-wrap{
+            max-width: 980px;      /* 원래 create 페이지 카드 폭 느낌 */
+            margin: 48px auto 0;   /* 위로 간격 + 가운데 정렬 */
+        }
+    </style>
+
+
+</head>
+
+
+<body class="hold-transition">
+<!--<div class="d-flex justify-content-center align-items-center vh-100">-->
+<div class="container-fluid my-4">
+    <div class="row">
+        <div class="col-12 col-lg-11 col-xl-10 mx-auto">
     <!-- 상단 로그아웃 버튼 -->
     <form th:action="@{/logout}" method="post" style="position:absolute; top:20px; right:20px;">
         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
@@ -16,42 +51,9 @@
     </form>
 
 
-    <div class="col-10">
-        <!-- 삭제 성공 메시지 -->
-<!--        <div th:if="${msg}" class="d-flex justify-content-center mt-2">-->
-<!--            <div class="alert alert-success alert-dismissible fade show d-inline-block px-3 py-2 mb-0 position-relative"-->
-<!--                 role="alert"-->
-<!--                 style="max-width: fit-content;">-->
-<!--                <span th:text="${msg}"></span>-->
 
-<!--                &lt;!&ndash; X 버튼: 박스 바깥 오른쪽 위 &ndash;&gt;-->
-<!--                <button type="button"-->
-<!--                        class="close position-absolute"-->
-<!--                        data-dismiss="alert"-->
-<!--                        aria-label="Close"-->
-<!--                        style="top: -10px; right: -10px; border: none; background: transparent; font-size: 1.2rem; line-height: 1;">-->
-<!--                    <span aria-hidden="true">&times;</span>-->
-<!--                </button>-->
-<!--            </div>-->
-<!--        </div>-->
+
         <div th:replace="fragments/alerts :: alerts"></div>
-<!--        &lt;!&ndash;삭제 에러 메시지 &ndash;&gt;-->
-<!--        <div th:if="${error}" class="d-flex justify-content-center mt-2 position-relative">-->
-            <!-- 녹색 박스 -->
-<!--            <div class="alert alert-success fade show d-inline-block px-3 py-2 mb-0"-->
-<!--                 role="alert"-->
-<!--                 style="max-width: fit-content; position: relative;">-->
-<!--                <span th:text="${error}"></span>-->
-<!--            </div>-->
-<!--                &lt;!&ndash; X 버튼 (녹색 박스 바깥 오른쪽 위) &ndash;&gt;-->
-<!--                <button type="button"-->
-<!--                        class="close position-absolute"-->
-<!--                        data-dismiss="alert"-->
-<!--                        aria-label="Close"-->
-<!--                        style="top: -10px; right: -10px; border: none; background: transparent; font-size: 1.2rem; line-height: 1;">-->
-<!--                    <span aria-hidden="true">&times;</span>-->
-<!--                </button>-->
-<!--            </div>-->
 
 
 
@@ -92,7 +94,7 @@
                                         <th style="width:170px;">수정일</th>
                                     </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody id="post-list-body">
                                     <tr th:each="p : ${posts.content}">
                                         <td th:text="${p.id}"></td>
                                         <td>
@@ -103,7 +105,7 @@
                                         <td th:text="${#temporals.format(p.createdAt, 'yyyy-MM-dd HH:mm')}"></td>
                                         <td th:text="${#temporals.format(p.updateAt, 'yyyy-MM-dd HH:mm')}"></td>
                                     </tr>
-                                    <tr th:if="${#lists.isEmpty(posts.content)}">
+                                    <tr id="no-posts-row" th:if="${#lists.isEmpty(posts.content)}">
                                         <td colspan="6" class="text-center text-muted p-4">게시글이 없습니다.</td>
                                     </tr>
                                     </tbody>
@@ -136,14 +138,256 @@
                             <!-- /.card-footer -->
 
                         </div>
-        <a th:href="@{/posts/create}" class="btn btn-primary float-right">글쓰기</a>
+            <!-- 글쓰기 버튼에 여백 추가 -->
+            <a th:href="@{/posts/create}" class="btn btn-primary float-right mb-3">글쓰기</a>
+
+            <!-- 플로트 해제 (다음 요소가 얹히는 걸 방지) -->
+            <div class="clearfix"></div>
+
+            <!-- ✅ create 전용 래퍼: 리스트와 폭 분리 -->
+            <div class="create-inline-wrap container mt-4">
+                <div th:replace="posts/_create-inline :: inlineCreate"></div>
+            </div>
+
 
                     </div>
                 </div>
 
 
+
+
 <script th:src="@{/plugins/jquery/jquery.min.js}"></script>
 <script th:src="@{/plugins/bootstrap/js/bootstrap.bundle.min.js}"></script>
 <script th:src="@{/dist/js/adminlte.min.js}"></script>
+
+
+
+
+
+
+    <script th:inline="javascript">
+        // 에디터 iframe이 실제로 뜰 때까지 짧게 폴링해서 폭 보강
+        var __se2Watch = setInterval(function(){
+            var iframe = document.querySelector('#editor-slot iframe');
+            if(!iframe) return;
+            var doc = iframe.contentDocument || iframe.contentWindow?.document;
+            if(!doc) return;
+            // 한 번이라도 찾으면 보강하고 종료
+            try { fixSE2InnerWidth(); } catch(e){}
+            clearInterval(__se2Watch);
+        }, 120);
+        // 8초 넘으면 안전 종료
+        setTimeout(function(){ clearInterval(__se2Watch); }, 8000);
+    </script>
+
+
+
+
+
+
+    <script th:inline="javascript">
+    var oEditors = [];
+    var skinUri = /*[[@{/se2/SmartEditor2Skin.html}]]*/ '/se2/SmartEditor2Skin.html';
+    skinUri += (skinUri.indexOf('?') === -1 ? '?' : '&') + 'v=' + Date.now();
+    function fixSE2InnerWidth(){
+        // 1) 바깥 iframe 자체 100%
+        var iframe = document.querySelector('#editor-slot iframe') ||
+            document.querySelector('iframe[src*="SmartEditor2Skin"]');
+        if(!iframe) return;
+        iframe.style.width = '100%';
+        iframe.removeAttribute('width');
+
+        // 2) iframe 내부 문서 폭 강제
+        var doc = iframe.contentDocument || iframe.contentWindow?.document;
+        if(!doc) return;
+
+        // 2-1) 한 번만 주입되는 스타일
+        if(!doc.getElementById('se2-width-fix')){
+            var style = doc.createElement('style');
+            style.id = 'se2-width-fix';
+            style.textContent = `
+        html, body { width:100% !important; overflow-x:hidden !important; }
+
+        /* 스킨 래퍼 전부 100% */
+        .se2_mwrapper, .se2_inwrap, .se2_workarea, .se2_workspace,
+        .se2_editor, .se2_input_area, .se2_ui_layout,
+        .se2_container, .se2_canvas, .se2_wysiwyg_area {
+          width:100% !important; max-width:100% !important;
+        }
+
+        /* 테이블/셀에 폭 속성 있으면 눌러버리기 */
+        table, td { width:100% !important; max-width:100% !important; }
+      `;
+            doc.head.appendChild(style);
+        }
+
+        // 2-2) width 속성으로 박혀있는 애들 제거(보강)
+        Array.from(doc.querySelectorAll('table[width], td[width]')).forEach(function(el){
+            el.removeAttribute('width');
+        });
+
+        // 2-3) 내부에 또 있는 iframe(편집영역)들도 100%
+        Array.from(doc.querySelectorAll('iframe')).forEach(function(ifr){
+            ifr.style.width = '100%';
+            ifr.removeAttribute('width');
+        });
+    }
+
+    nhn.husky.EZCreator.createInIFrame({
+        oAppRef: oEditors,
+        elPlaceHolder: "body",
+        sSkinURI: skinUri,
+        fCreator: "createSEditor2",
+        htParams: { bUseToolbar:true, bUseVerticalResizer:false, bUseModeChanger:true },
+        fOnAppLoad: function () {
+            try { oEditors.getById["body"].exec("RESIZE_EDITING_AREA", [420]); } catch(e){}
+            // 로딩 타이밍 대비해서 여러 번 주입
+            fixSE2InnerWidth();
+            setTimeout(fixSE2InnerWidth, 0);
+            setTimeout(fixSE2InnerWidth, 150);
+            setTimeout(fixSE2InnerWidth, 600);
+        }
+    });
+
+    window.addEventListener('resize', function(){
+        requestAnimationFrame(fixSE2InnerWidth);
+    });
+    // ===== 3-2) 네가 쓰던 파일 드롭존/피커 스크립트 바인딩 =====
+    (function(){
+        var MAX_FILE_SIZE_MB = 20, MAX_REQ_SIZE_MB = 25;
+        var MAX_FILE_SIZE = MAX_FILE_SIZE_MB*1024*1024, MAX_REQ_SIZE = MAX_REQ_SIZE_MB*1024*1024;
+
+        function fmt(b){var u=['B','KB','MB','GB'],i=0,n=b;while(n>=1024&&i<u.length-1){n/=1024;i++;}return (n<10&&i>0?n.toFixed(1):Math.round(n))+' '+u[i];}
+        function keyOf(f){ return [f.name,f.size,f.lastModified].join('#'); }
+        function showSizeModal(html){ $('#sizeLimitBody').html(html); $('#sizeLimitModal').modal('show'); }
+
+        function wirePicker(opts){
+            var $form=$(opts.formSelector||'#postForm');
+            var $btn=$(opts.btnId), $dz=$(opts.dropzoneId),
+                $picker=$(opts.pickerId), $input=$(opts.submitInputId), $list=$(opts.listId);
+            if(!$btn.length||!$picker.length||!$input.length||!$list.length) return;
+
+            var selected=new Map();
+
+            function validate(files){
+                var total=0, over=[];
+                var all=[...selected.values(), ...Array.from(files)];
+                for(var i=0;i<all.length;i++){ total+=all[i].size; if(all[i].size>MAX_FILE_SIZE) over.push(all[i]); }
+                if(over.length || total>MAX_REQ_SIZE){
+                    var html='';
+                    if(over.length){
+                        html += '<div class="mb-2">개별 파일은 최대 <b>'+MAX_FILE_SIZE_MB+'MB</b>까지 허용합니다.</div><ul>';
+                        over.forEach(f=>html+='<li>'+f.name+' — '+fmt(f.size)+'</li>'); html+='</ul>';
+                    }
+                    if(total>MAX_REQ_SIZE){
+                        html+='<div class="mt-2">선택한 파일 합계가 <b>'+MAX_REQ_SIZE_MB+'MB</b>를 초과했습니다.</div>';
+                    }
+                    showSizeModal(html); return false;
+                }
+                return true;
+            }
+            function syncHidden(){
+                var dt=new DataTransfer(); selected.forEach(f=>dt.items.add(f));
+                $input[0].files = dt.files;
+            }
+            function render(){
+                $list.empty();
+                if(selected.size===0){ $list.append('<li class="list-group-item text-muted">선택된 파일이 없습니다.</li>'); return; }
+                selected.forEach(function(f,k){
+                    var $li=$('<li class="list-group-item d-flex justify-content-between align-items-center"></li>');
+                    $li.append('<span>'+f.name+' <small class="text-muted">— '+fmt(f.size)+'</small></span>');
+                    var $del=$('<button type="button" class="btn btn-sm btn-outline-danger">삭제</button>');
+                    $del.on('click', function(){ selected.delete(k); syncHidden(); render(); });
+                    $li.append($del); $list.append($li);
+                });
+            }
+            function addFiles(fileList){
+                var arr=Array.from(fileList||[]), unique=arr.filter(f=>!selected.has(keyOf(f)));
+                if(unique.length===0) return;
+                if(!validate(unique)) return;
+                unique.forEach(f=>selected.set(keyOf(f),f));
+                syncHidden(); render();
+            }
+            $btn.on('click', ()=> $picker.trigger('click'));
+            $picker.on('change', function(){ addFiles(this.files); this.value=''; });
+            $dz.on('dragover', function(e){ e.preventDefault(); e.originalEvent.dataTransfer.dropEffect='copy'; $dz.addClass('bg-light'); });
+            $dz.on('dragleave', function(){ $dz.removeClass('bg-light'); });
+            $dz.on('drop', function(e){ e.preventDefault(); $dz.removeClass('bg-light'); addFiles(e.originalEvent.dataTransfer.files); });
+
+            // 외부 초기화용
+            window.__resetFiles = function(){ selected.clear(); syncHidden(); render(); };
+            render();
+        }
+
+        // create-inline에 맞춰 1회 바인딩
+        $(function(){
+            wirePicker({
+                btnId:'#addBtn-create',
+                dropzoneId:'#dz-create',
+                pickerId:'#picker-create',
+                submitInputId:'#files-create',
+                listId:'#list-create',
+                formSelector:'#postForm'
+            });
+        });
+    })();
+
+    // ===== 3-3) AJAX 제출(프래그먼트 반환) =====
+    (function(){
+        var $form = $('#postForm');           // 프래그먼트의 폼 id 그대로
+        if(!$form.length) return;
+
+        function prependRowHtml(html){
+            if(!html) return;
+            $('#post-list-body').prepend(html);
+            $('#no-posts-row').remove();
+        }
+
+        $form.on('submit', function(e){
+            e.preventDefault();
+
+            // 세디터 내용을 textarea로 반영
+            try { oEditors?.getById?.["body"]?.exec("UPDATE_CONTENTS_FIELD", []); } catch(e){}
+
+            // 간단 유효성
+            var title = $('#title').val()?.trim();
+            var body  = $('#body').val()?.trim();
+            if(!title){ alert('제목을 입력하세요.'); $('#title').focus(); return; }
+            if(!body){  alert('본문을 입력하세요.'); return; }
+
+            var fd = new FormData(this); // hidden CSRF + files 포함 그대로 전송
+            $.ajax({
+                url: $form.attr('action'),    // /posts/row
+                method: 'POST',
+                data: fd,
+                processData: false,
+                contentType: false,
+                success: function(html){
+                    prependRowHtml(html);
+                    // 폼 초기화
+                    $('#title').val('');
+                    try { oEditors?.getById?.["body"]?.exec("SET_IR", ['']); } catch(e){ $('#body').val(''); }
+                    $('#files-create').val('');
+                    window.__resetFiles?.();
+                    alert('등록되었습니다.');
+                },
+                error: function(xhr){
+                    alert('등록 실패: ' + (xhr.responseText || ''));
+                }
+            });
+        });
+    })();
+</script>
+
+
+
+
+
+
+
+
+
+
+
 </body>
 </html>

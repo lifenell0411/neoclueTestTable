@@ -192,6 +192,63 @@
 </script>
 
 
+
+
+<script>
+    function forceSE2FullWidth(){
+        // 0) 바깥 iframe부터 100%
+        var iframe = document.querySelector('#editor-slot iframe')
+            || document.querySelector('iframe[src*="SmartEditor2Skin"]');
+        if(!iframe) return false;
+        iframe.style.width = '100%';
+        iframe.removeAttribute('width');
+
+        var doc = iframe.contentDocument || iframe.contentWindow?.document;
+        if(!doc) return false;
+
+        // 1) 스킨 내부에 폭 강제 스타일 1회 주입
+        var style = doc.getElementById('se2-width-fix-host') || doc.createElement('style');
+        style.id = 'se2-width-fix-host';
+        style.textContent = `
+      html, body { width:100% !important; overflow-x:hidden !important; }
+      .se2_mwrapper, .se2_inwrap, .se2_workarea, .se2_workspace,
+      .se2_editor, .se2_input_area, .se2_ui_layout,
+      .se2_container, .se2_canvas, .se2_wysiwyg_area {
+        width:100% !important; max-width:100% !important;
+      }
+      table, td { width:100% !important; max-width:100% !important; }
+    `;
+        if(!style.parentNode) doc.head.appendChild(style);
+
+        // 2) width 속성/인라인 px로 고정된 애들 한 번 더 제거/덮기
+        doc.querySelectorAll('[width]').forEach(function(el){ el.removeAttribute('width'); });
+        doc.querySelectorAll('[style*="width"]').forEach(function(el){
+            el.style.width = '100%';
+            el.style.maxWidth = '100%';
+        });
+
+        // 3) 내부 편집 iframe도 100%
+        doc.querySelectorAll('iframe').forEach(function(ifr){
+            ifr.style.width = '100%';
+            ifr.removeAttribute('width');
+        });
+
+        return true;
+    }
+
+    // 로딩 타이밍 이슈 대비: 초기 몇 초간 반복 보강
+    (function(){
+        var n = 0, t = setInterval(function(){
+            n++;
+            var ok = forceSE2FullWidth();
+            if ((ok && n > 3) || n > 40) clearInterval(t); // 0.12s 간격, 최대 ~5초
+        }, 120);
+    })();
+</script>
+
+
+
+
 <script>
     (function(){
         const form  = document.getElementById('postForm');

@@ -96,6 +96,7 @@ public class PostServiceImpl implements PostService {
                 .body(post.getBody())
                 .authorUserId(post.getUserId())
                 .createdAt(post.getCreatedAt())
+                .updateAt(post.getUpdateAt())
                 .files(files)
                 .build();
     }
@@ -107,7 +108,7 @@ public class PostServiceImpl implements PostService {
                 .id(p.getId())
                 .title(p.getTitle())
                 .authorUserId(p.getUserId())
-                .bodyPreview(html.preview(p.getBody(), 120))
+                .bodyPreview(html.preview(p.getBody(), 70))
                 .createdAt(p.getCreatedAt())
                 .updateAt(p.getUpdateAt())
                 .build());

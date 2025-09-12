@@ -48,6 +48,7 @@ public class PostController {
 
         model.addAttribute("posts", posts); // 게시글 목록
         model.addAttribute("q", q);         // 검색어 유지용
+        model.addAttribute("post", new PostCreateRequest());
         return "posts/list"; // templates/posts/list.html 로 렌더링
     }
 
@@ -145,4 +146,8 @@ public class PostController {
 
 
     }
+
+
+
+
 }

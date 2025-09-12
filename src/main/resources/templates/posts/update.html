@@ -137,27 +137,28 @@
 
 
 
-
-<!-- 스킨을 미리 당겨오면 초기 지연이 줄어듭니다 -->
-
+<!-- SmartEditor2 폭/높이 보정 스크립트 (초기화/내부 width 강제) -->
 <script th:inline="javascript">
+    // 에디터 인스턴스 보관
     var oEditors = [];
+
+    // 스킨 문서 경로
     var skinUri = /*[[@{/se2/SmartEditor2Skin.html}]]*/ '/se2/SmartEditor2Skin.html';
 
+    // iFrame 내부에 width:100% 강제 스타일 주입
     function fixSE2InnerWidth(){
         var iframe = document.querySelector('#editor-slot iframe');
         if(!iframe) return;
         var doc = iframe.contentDocument || iframe.contentWindow?.document;
         if(!doc) return;
 
-        // 이미 주입했으면 중복 방지
+        // 중복 주입 방지
         if (doc.getElementById('se2-width-fix')) return;
 
         var style = doc.createElement('style');
         style.id = 'se2-width-fix';
         style.textContent = `
       html, body { width:100% !important; overflow-x:hidden !important; }
-      /* 스킨 내부 래퍼들을 전부 100%로 */
       .se2_mwrapper, .se2_inwrap, .se2_workarea, .se2_workspace,
       .se2_editor, .se2_input_area, .se2_iframe, .se2_ui_layout,
       .se2_container, .se2_canvas, .se2_wysiwyg_area {
@@ -167,23 +168,23 @@
         doc.head.appendChild(style);
     }
 
+    // SmartEditor2 생성
     nhn.husky.EZCreator.createInIFrame({
-        oAppRef: oEditors,
-        elPlaceHolder: "body",
-        sSkinURI: skinUri,
+        oAppRef: oEditors,                 // 에디터 참조 저장
+        elPlaceHolder: "body",             // 대상 textarea ID
+        sSkinURI: skinUri,                 // 스킨 문서
         fCreator: "createSEditor2",
         htParams: { bUseToolbar:true, bUseVerticalResizer:false, bUseModeChanger:true },
         fOnAppLoad: function () {
-            // 높이 맞추기
+            // 편집영역 높이 고정(깜빡임 방지)
             var H = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--se2-area')) || 420;
             try { oEditors.getById["body"].exec("RESIZE_EDITING_AREA", [H]); } catch(e){}
 
-            // ★ iFrame 내부 폭 강제 주입
-            // 약간 늦게 한 번 더 실행해서 초기 레이아웃 이후도 덮어쓴다
+            // 내부 폭 보정(즉시 + 다음 프레임 한 번 더)
             fixSE2InnerWidth();
             requestAnimationFrame(fixSE2InnerWidth);
 
-            // 슬롯 잠금 해제 + 가운데 정렬 전환(네 코드 유지)
+            // 자리막이 해제 + 가운데 정렬 전환
             var slot = document.getElementById('editor-slot');
             if (slot) slot.style.minHeight = '0';
             document.body.classList.remove('is-loading');
@@ -191,14 +192,12 @@
         }
     });
 
-    // 창 크기 변경 시도 내부가 px로 돌아가면 다시 강제
-    window.addEventListener('resize', function(){ requestAnimationFrame(fixSE2InnerWidth); });
-
-    // 제출 시 본문 반영(네 코드 유지)
-    document.getElementById('postForm')?.addEventListener('submit', function(){
-        try { oEditors.getById["body"]?.exec("UPDATE_CONTENTS_FIELD", []); } catch(e){}
+    // 창 크기 변경 시 재보정
+    window.addEventListener('resize', function(){
+        requestAnimationFrame(fixSE2InnerWidth);
     });
 </script>
+<!-- /SmartEditor2 폭/높이 보정 스크립트 끝 -->
 
 
 <!-- [2] 파일 사이즈 검사 스크립트 -->

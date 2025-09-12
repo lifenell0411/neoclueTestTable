@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 유효한 HTML을 위해 테두리만 만들어 둔다. 렌더 시에는 ::row 안의 <tr>만 쓰인다 -->
+<table><tbody>
+<tr th:fragment="row(item)">
+    <td th:text="${item.id}">1</td>
+    <td>
+        <a th:href="@{/posts/{id}(id=${item.id})}" th:text="${item.title}">제목</a>
+    </td>
+    <td th:text="${item.bodyPreview}">미리보기</td>
+    <td th:text="${item.authorUserId}">user</td>
+    <td th:text="${#temporals.format(item.createdAt, 'yyyy-MM-dd HH:mm')}">2025-09-12 10:00</td>
+    <td th:text="${#temporals.format(item.updateAt, 'yyyy-MM-dd HH:mm')}">2025-09-12 10:00</td>
+</tr>
+</tbody></table>
+</body>
+</html>
