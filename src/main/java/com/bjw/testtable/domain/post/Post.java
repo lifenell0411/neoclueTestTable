@@ -29,11 +29,32 @@ public class Post {
     @Column(nullable = false)
     private String body;
 
+
     @Column(name="created_at")
     private LocalDateTime createdAt;
 
     @Column(name="update_at", nullable = false)
     private LocalDateTime updateAt;
+
+
+    @Column(nullable = false)
+    private boolean deleted = false;
+
+    private LocalDateTime deletedAt;
+    private String deletedBy;
+
+    public void markDeleted(String userId){
+        this.deleted = true;
+        this.deletedAt = LocalDateTime.now();
+        this.deletedBy = userId;
+    }
+
+    public void restore(){
+        this.deleted = false;
+        this.deletedAt = null;
+        this.deletedBy = null;
+    }
+
 
     @PrePersist
     void onCreate() {

@@ -41,6 +41,8 @@ public class PostServiceImpl implements PostService {
     @PreAuthorize("isAuthenticated()") //글 작성은 로그인한 사용자만
     public Long create(String currentUserId, PostCreateRequest req, List<MultipartFile> files) {
 
+
+
         Post saved = postRepository.save(
                 Post.builder()
                         .userId(currentUserId)

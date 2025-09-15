@@ -1,8 +1,15 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <body>
-<!-- 유효한 HTML을 위해 테두리만 만들어 둔다. 렌더 시에는 ::row 안의 <tr>만 쓰인다 -->
+<!-- 유효한 HTML을 위해 테두리만 만들어 둔다. 렌더 시에는 ::row 안의 <tr>만 쓰인다. <tr> ~ </tr>까지만 가져다 쓰겠다. -->
+
+
+<!--PostRowController에서 넘어옴, 이름이 row인 프래그먼트 필요, row가 조각이고 item이 파라미터임-->
+
 <table><tbody>
+
+
+<!-- list.create에 작성한 글 한줄이 아래에 담김-->
 <tr th:fragment="row(item)">
     <td th:text="${item.id}">1</td>
     <td>
@@ -13,6 +20,9 @@
     <td th:text="${#temporals.format(item.createdAt, 'yyyy-MM-dd HH:mm')}">2025-09-12 10:00</td>
     <td th:text="${#temporals.format(item.updateAt, 'yyyy-MM-dd HH:mm')}">2025-09-12 10:00</td>
 </tr>
+
+
+
 </tbody></table>
 </body>
 </html>

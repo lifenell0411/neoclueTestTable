@@ -47,4 +47,24 @@ public class FileEntity { //DB테이블 file의 1:1매핑. JPA가 관리, FileRe
     void prePersist() {
         if (createdAt == null) createdAt = LocalDateTime.now();
     }
+
+    @Column(nullable = false)
+    private boolean deleted = false;
+
+    private LocalDateTime deletedAt;
+    private String deletedBy;
+
+    public void markDeleted(String userId){
+        this.deleted = true;
+        this.deletedAt = LocalDateTime.now();
+        this.deletedBy = userId;
+    }
+
+    public void restore(){
+        this.deleted = false;
+        this.deletedAt = null;
+        this.deletedBy = null;
+    }
+
+
 }
