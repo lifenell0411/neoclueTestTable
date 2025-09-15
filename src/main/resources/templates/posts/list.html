@@ -3,288 +3,268 @@
 <head>
     <meta charset="utf-8">
     <title>게시글 목록</title>
+
     <link rel="stylesheet" th:href="@{/plugins/fontawesome-free/css/all.min.css}">
     <link rel="stylesheet" th:href="@{/dist/css/adminlte.min.css}">
+
     <!-- ✅ AJAX에서 쓸 CSRF 메타 -->
     <meta name="_csrf" th:content="${_csrf.token}">
     <meta name="_csrf_header" th:content="${_csrf.headerName}">
+
+    <!-- SmartEditor2 -->
     <script th:src="@{/se2/js/service/HuskyEZCreator.js}" charset="utf-8"></script>
     <link rel="preload" as="document" href="/se2/SmartEditor2Skin.html">
 
-
+    <!-- 에디터 바깥 iframe 100% -->
     <style>
-        /* 바깥 iframe 자체를 먼저 100%로 */
-        #editor-slot iframe {
-            width: 100% !important;
-            min-width: 100% !important;
-            display: block;
-        }
-        /* 슬롯 자체도 100% 보장 */
-        #editor-slot { width: 100%; }
+        #editor-slot iframe { width:100% !important; min-width:100% !important; display:block; }
+        #editor-slot { width:100%; }
     </style>
 
-
+    <!-- create 카드 폭을 list와 독립적으로 제어 -->
     <style>
-        /* create는 리스트와 독립된 폭(원래 create 페이지 느낌) */
-        .create-inline-wrap{
-            max-width: 980px;      /* 원래 create 페이지 카드 폭 느낌 */
-            margin: 48px auto 0;   /* 위로 간격 + 가운데 정렬 */
+        .create-inline-wrap {
+            max-width: 980px;      /* create 페이지 느낌의 폭 */
+            margin: 48px auto 0;   /* 위 여백 + 가운데 정렬 */
         }
     </style>
 
 
-</head>
 
 
-<body class="hold-transition">
-<!--<div class="d-flex justify-content-center align-items-center vh-100">-->
-<div class="container-fluid my-4">
-    <div class="row">
-        <div class="col-12 col-lg-11 col-xl-10 mx-auto">
-    <!-- 상단 로그아웃 버튼 -->
-    <form th:action="@{/logout}" method="post" style="position:absolute; top:20px; right:20px;">
-        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-        <button type="submit" class="btn btn-outline-danger btn-sm">로그아웃</button>
-    </form>
+    <!-- ✅ 리스트 페이지에서 beforeunload 경고 완전 차단 (정상 버전: preventDefault 절대 금지) -->
+    <script>
+        (function () {
+            // 앞으로 등록될 beforeunload 리스너 자체를 차단
+            const _add = window.addEventListener;
+            window.addEventListener = function (type, listener, options) {
+                if (type === 'beforeunload') return; // 등록 무시
+                return _add.call(this, type, listener, options);
+            };
 
+            // window.onbeforeunload = ... 같은 직접 할당도 원천봉쇄
+            try {
+                Object.defineProperty(window, 'onbeforeunload', {
+                    configurable: true,
+                    get() { return null; },
+                    set(_) { /* block */ }
+                });
+            } catch (_) {}
 
+            // 혹시 이미 붙어있는 리스너보다 먼저 실행해서 “전파만” 끊는다.
+            // ⚠️ 여기서 절대 e.preventDefault()나 e.returnValue 설정하지 말 것!
+            _add.call(window, 'beforeunload', function (e) {
+                e.stopImmediatePropagation(); // 다른 리스너 실행 못 하게
+                // do NOT call e.preventDefault()
+                // do NOT set e.returnValue
+            }, true);
 
-
-        <div th:replace="fragments/alerts :: alerts"></div>
-
-
-
-
-
-        <div class="card">
-            <div class="card-header">
-                                <h3 class="card-title">게시글 목록</h3>
-                <div class="card-tools">
-                                    <form th:action="@{/posts/list}" method="get">
-                                        <div class="input-group input-group-sm" style="width: 220px;">
-                                            <input type="text" name="q" class="form-control float-right" placeholder="Search"
-                                                   th:value="${q}">
-                                            <div class="input-group-append">
-                                                <button type="submit" class="btn btn-default">
-                                                    <i class="fas fa-search"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-
-
-
-
-                            <!-- /.card-header -->
-
-                            <div class="card-body table-responsive p-0">
-                                <table class="table table-hover text-nowrap">
-                                    <thead>
-                                    <tr>
-                                        <th style="width:80px;">글번호</th>
-                                        <th>제목</th>
-                                        <th>내용</th>
-                                        <th style="width:180px;">회원아이디</th>
-                                        <th style="width:170px;">작성일</th>
-                                        <th style="width:170px;">수정일</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody id="post-list-body">
-                                    <tr th:each="p : ${posts.content}">
-                                        <td th:text="${p.id}"></td>
-                                        <td>
-                                            <a th:href="@{/posts/{id}(id=${p.id})}" th:text="${p.title}">제목</a>
-                                        </td>
-                                        <td th:text="${p.bodyPreview}">미리보기</td> <!-- 👈 이거 하나면 끝 -->
-                                        <td th:text="${p.authorUserId}"></td>
-                                        <td th:text="${#temporals.format(p.createdAt, 'yyyy-MM-dd HH:mm')}"></td>
-                                        <td th:text="${#temporals.format(p.updateAt, 'yyyy-MM-dd HH:mm')}"></td>
-                                    </tr>
-                                    <tr id="no-posts-row" th:if="${#lists.isEmpty(posts.content)}">
-                                        <td colspan="6" class="text-center text-muted p-4">게시글이 없습니다.</td>
-                                    </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            <!-- /.card-body -->
-
-                            <div class="card-footer clearfix">
-
-
-                                <ul class="pagination pagination-sm m-0 float-right">
-                                    <li class="page-item" th:classappend="${posts.first} ? 'disabled'">
-                                        <a class="page-link"
-                                           th:href="@{/posts/list(page=${posts.number-1}, size=${posts.size}, q=${q})}">&laquo;</a>
-                                    </li>
-
-                                    <li class="page-item" th:each="i : ${#numbers.sequence(0, posts.totalPages-1)}"
-                                        th:classappend="${i} == ${posts.number} ? 'active'">
-                                        <a class="page-link"
-                                           th:text="${i+1}"
-                                           th:href="@{/posts/list(page=${i}, size=${posts.size}, q=${q})}">1</a>
-                                    </li>
-
-                                    <li class="page-item" th:classappend="${posts.last} ? 'disabled'">
-                                        <a class="page-link"
-                                           th:href="@{/posts/list(page=${posts.number+1}, size=${posts.size}, q=${q})}">&raquo;</a>
-                                    </li>
-                                </ul>
-                            </div>
-                            <!-- /.card-footer -->
-
-                        </div>
-            <!-- 글쓰기 버튼에 여백 추가 -->
-            <a th:href="@{/posts/create}"
-               class="btn btn-primary float-right mb-3"
-               data-skip-leave-warning>글쓰기</a>
-
-            <!-- 플로트 해제 (다음 요소가 얹히는 걸 방지) -->
-            <div class="clearfix"></div>
-
-            <!-- ✅ create 전용 래퍼: 리스트와 폭 분리 -->
-            <div class="create-inline-wrap container mt-4">
-                <div th:replace="posts/_create-inline :: inlineCreate"></div>
-            </div>
-
-
-                    </div>
-                </div>
-
-
-
-
-<script th:src="@{/plugins/jquery/jquery.min.js}"></script>
-<script th:src="@{/plugins/bootstrap/js/bootstrap.bundle.min.js}"></script>
-<script th:src="@{/dist/js/adminlte.min.js}"></script>
-
-
-
-
-
-
-    <script th:inline="javascript">
-        // 에디터 iframe이 실제로 뜰 때까지 짧게 폴링해서 폭 보강
-        var __se2Watch = setInterval(function(){
-            var iframe = document.querySelector('#editor-slot iframe');
-            if(!iframe) return;
-            var doc = iframe.contentDocument || iframe.contentWindow?.document;
-            if(!doc) return;
-            // 한 번이라도 찾으면 보강하고 종료
-            try { fixSE2InnerWidth(); } catch(e){}
-            clearInterval(__se2Watch);
-        }, 120);
-        // 8초 넘으면 안전 종료
-        setTimeout(function(){ clearInterval(__se2Watch); }, 8000);
+            // jQuery가 미리 붙였던게 있으면 제거 시도
+            if (window.jQuery) {
+                try { jQuery(window).off('beforeunload'); jQuery(document).off('beforeunload'); } catch (_) {}
+            }
+        })();
     </script>
 
 
 
 
+</head>
 
+<body class="hold-transition">
+<div class="container-fluid my-4"><!-- .container-fluid: 페이지 전체 폭 -->
+    <div class="row">
+        <div class="col-12 col-lg-11 col-xl-10 mx-auto"><!-- 중앙 고정폭 컨테이너 -->
 
-    <script th:inline="javascript">
-        var oEditors = [];
-        var skinUri = /*[[@{/se2/SmartEditor2Skin.html}]]*/ '/se2/SmartEditor2Skin.html';
-        // 캐시 버스터
-        skinUri += (skinUri.indexOf('?') === -1 ? '?' : '&') + 'v=' + Date.now();
+            <!-- 상단 로그아웃 버튼 -->
+            <form th:action="@{/logout}" method="post" style="position:absolute; top:20px; right:20px;">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-outline-danger btn-sm">로그아웃</button>
+            </form>
 
-        // --- 핵심: 스킨 내부 px 폭을 계속 100%로 강제하는 함수 + 옵저버 ---
-        function makeSE2Responsive(){
-            var iframe = document.querySelector('#editor-slot iframe') ||
-                document.querySelector('iframe[src*="SmartEditor2Skin"]');
-            if (!iframe) return false;
+            <!-- 알림 -->
+            <div th:replace="fragments/alerts :: alerts"></div>
 
-            // 바깥 iframe 자체를 100%
-            iframe.style.width = '100%';
-            iframe.removeAttribute('width');
+            <!-- 목록 카드 -->
+            <div class="card">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h3 class="card-title mb-0">게시글 목록</h3>
+                    <div class="card-tools">
+                        <form th:action="@{/posts/list}" method="get">
+                            <div class="input-group input-group-sm" style="width:220px;">
+                                <input type="text" name="q" class="form-control float-right" placeholder="Search" th:value="${q}">
+                                <div class="input-group-append">
+                                    <button type="submit" class="btn btn-default"><i class="fas fa-search"></i></button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
 
-            var doc = iframe.contentDocument || iframe.contentWindow?.document;
-            if (!doc) return false;
+                <div class="card-body table-responsive p-0">
+                    <table class="table table-hover text-nowrap">
+                        <thead>
+                        <tr>
+                            <th style="width:80px;">글번호</th>
+                            <th>제목</th>
+                            <th>내용</th>
+                            <th style="width:180px;">회원아이디</th>
+                            <th style="width:170px;">작성일</th>
+                            <th style="width:170px;">수정일</th>
+                        </tr>
+                        </thead>
+                        <tbody id="post-list-body">
+                        <tr th:each="p : ${posts.content}">
+                            <td th:text="${p.id}"></td>
+                            <td><a th:href="@{/posts/{id}(id=${p.id})}" th:text="${p.title}">제목</a></td>
+                            <td th:text="${p.bodyPreview}">미리보기</td>
+                            <td th:text="${p.authorUserId}"></td>
+                            <td th:text="${#temporals.format(p.createdAt, 'yyyy-MM-dd HH:mm')}"></td>
+                            <td th:text="${#temporals.format(p.updateAt, 'yyyy-MM-dd HH:mm')}"></td>
+                        </tr>
+                        <tr id="no-posts-row" th:if="${#lists.isEmpty(posts.content)}">
+                            <td colspan="6" class="text-center text-muted p-4">게시글이 없습니다.</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
 
-            // 한번만 주입되는 스타일 (iframe 내부 전용)
-            if (!doc.getElementById('se2-rwd-css')) {
-                var style = doc.createElement('style');
-                style.id = 'se2-rwd-css';
-                style.textContent = `
-        html, body { width:100% !important; overflow-x:hidden !important; }
+                <div class="card-footer clearfix">
+                    <ul class="pagination pagination-sm m-0 float-right">
+                        <li class="page-item" th:classappend="${posts.first} ? 'disabled'">
+                            <a class="page-link" th:href="@{/posts/list(page=${posts.number-1}, size=${posts.size}, q=${q})}">&laquo;</a>
+                        </li>
+                        <li class="page-item" th:each="i : ${#numbers.sequence(0, posts.totalPages-1)}"
+                            th:classappend="${i} == ${posts.number} ? 'active'">
+                            <a class="page-link"
+                               th:text="${i+1}"
+                               th:href="@{/posts/list(page=${i}, size=${posts.size}, q=${q})}">1</a>
+                        </li>
+                        <li class="page-item" th:classappend="${posts.last} ? 'disabled'">
+                            <a class="page-link" th:href="@{/posts/list(page=${posts.number+1}, size=${posts.size}, q=${q})}">&raquo;</a>
+                        </li>
+                    </ul>
+                </div>
+            </div><!-- /.card -->
 
-        /* 스킨 주요 래퍼 전부 100% */
-        .se2_mwrapper, .se2_inwrap, .se2_workarea, .se2_workspace,
-        .se2_editor, .se2_input_area, .se2_ui_layout,
-        .se2_container, .se2_canvas, .se2_wysiwyg_area,
-        iframe, table, td {
-          max-width:100% !important; width:100% !important;
+            <!-- 글쓰기 버튼 (이 버튼은 경고 없이 이동) -->
+            <a th:href="@{/posts/create}"
+               class="btn btn-primary float-right mb-3"
+               data-skip-leave-warning>글쓰기</a>
+
+            <div class="clearfix"></div>
+
+            <!-- 인라인 create: list 폭과 독립 -->
+            <div class="create-inline-wrap container mt-4">
+                <div th:replace="posts/_create-inline :: inlineCreate"></div>
+            </div>
+
+        </div><!-- /.col -->
+    </div><!-- /.row -->
+</div><!-- /.container-fluid -->
+
+<!-- 필수 JS -->
+<script th:src="@{/plugins/jquery/jquery.min.js}"></script>
+<script th:src="@{/plugins/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/dist/js/adminlte.min.js}"></script>
+
+<!-- 에디터 폭 보강: iframe 뜰 때까지 짧게 폴링 -->
+<script th:inline="javascript">
+    var __se2Watch = setInterval(function(){
+        var iframe = document.querySelector('#editor-slot iframe');
+        if(!iframe) return;
+        var doc = iframe.contentDocument || iframe.contentWindow?.document;
+        if(!doc) return;
+        try { if (window.makeSE2Responsive) window.makeSE2Responsive(); } catch(e){}
+        clearInterval(__se2Watch);
+    }, 120);
+    setTimeout(function(){ clearInterval(__se2Watch); }, 8000);
+</script>
+
+<!-- SmartEditor2 스킨 로드 + 반응형 보정 -->
+<script th:inline="javascript">
+    var oEditors = [];
+    var skinUri = /*[[@{/se2/SmartEditor2Skin.html}]]*/ '/se2/SmartEditor2Skin.html';
+    skinUri += (skinUri.indexOf('?') === -1 ? '?' : '&') + 'v=' + Date.now();
+
+    function makeSE2Responsive(){
+        var iframe = document.querySelector('#editor-slot iframe') ||
+            document.querySelector('iframe[src*="SmartEditor2Skin"]');
+        if (!iframe) return false;
+
+        iframe.style.width = '100%';
+        iframe.removeAttribute('width');
+
+        var doc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (!doc) return false;
+
+        if (!doc.getElementById('se2-rwd-css')) {
+            var style = doc.createElement('style');
+            style.id = 'se2-rwd-css';
+            style.textContent = `
+          html, body { width:100% !important; overflow-x:hidden !important; }
+          .se2_mwrapper, .se2_inwrap, .se2_workarea, .se2_workspace,
+          .se2_editor, .se2_input_area, .se2_ui_layout,
+          .se2_container, .se2_canvas, .se2_wysiwyg_area,
+          iframe, table, td { max-width:100% !important; width:100% !important; }
+        `;
+            doc.head.appendChild(style);
         }
-      `;
-                doc.head.appendChild(style);
-            }
 
-            // px/숫자 width 속성들을 100%로 정규화
-            function normalize(root){
-                root.querySelectorAll('[width], [style*="width"]').forEach(function(el){
-                    // width="650" 같은 속성
-                    var wAttr = el.getAttribute && el.getAttribute('width');
-                    if (wAttr && /^\d+$/.test(wAttr)) el.setAttribute('width', '100%');
+        function normalize(root){
+            root.querySelectorAll('[width], [style*="width"]').forEach(function(el){
+                var wAttr = el.getAttribute && el.getAttribute('width');
+                if (wAttr && /^\d+$/.test(wAttr)) el.setAttribute('width', '100%');
+                var sw = el.style && el.style.width;
+                if (sw && /px/.test(sw)) el.style.width = '100%';
+            });
+        }
+        normalize(doc);
 
-                    // style="width: 650px" 같은 인라인 스타일
-                    var sw = el.style && el.style.width;
-                    if (sw && /px/.test(sw)) el.style.width = '100%';
-                });
-            }
-            normalize(doc);
-
-            // 스킨이 DOM을 다시 만들 때도 즉시 재-정규화 (모드 전환 등)
-            if (!doc.__se2Observer) {
-                doc.__se2Observer = new MutationObserver(function(muts){
-                    muts.forEach(function(m){
-                        if (m.type === 'attributes') normalize(m.target);
-                        m.addedNodes && m.addedNodes.forEach(function(n){
-                            if (n.nodeType === 1) normalize(n);
-                        });
+        if (!doc.__se2Observer) {
+            doc.__se2Observer = new MutationObserver(function(muts){
+                muts.forEach(function(m){
+                    if (m.type === 'attributes') normalize(m.target);
+                    m.addedNodes && m.addedNodes.forEach(function(n){
+                        if (n.nodeType === 1) normalize(n);
                     });
                 });
-                doc.__se2Observer.observe(doc.documentElement, {
-                    subtree: true, childList: true, attributes: true,
-                    attributeFilter: ['style','width']
-                });
-            }
-
-            return true;
+            });
+            doc.__se2Observer.observe(doc.documentElement, {
+                subtree: true, childList: true, attributes: true,
+                attributeFilter: ['style','width']
+            });
         }
+        return true;
+    }
 
-        // 에디터 로딩 타이밍 이슈 대비: 폴링으로 한번 잡고, 이후엔 옵저버가 유지보수
-        function armSE2Fix(){
-            var okNow = makeSE2Responsive();
-            if (okNow) return;
-
-            var tries = 0, timer = setInterval(function(){
-                if (makeSE2Responsive() || ++tries > 60) clearInterval(timer); // 최대 6초 시도
-            }, 100);
+    // SmartEditor2 생성
+    nhn.husky.EZCreator.createInIFrame({
+        oAppRef: oEditors,
+        elPlaceHolder: "body",
+        sSkinURI: skinUri,
+        fCreator: "createSEditor2",
+        htParams: { bUseToolbar:true, bUseVerticalResizer:false, bUseModeChanger:true },
+        fOnAppLoad: function () {
+            try { oEditors.getById["body"].exec("RESIZE_EDITING_AREA", [420]); } catch(e){}
+            // 폭 보정 가동
+            (function arm(){
+                var ok = makeSE2Responsive();
+                if (ok) return;
+                var tries = 0, t = setInterval(function(){
+                    if (makeSE2Responsive() || ++tries > 60) clearInterval(t);
+                }, 100);
+            })();
+            setTimeout(makeSE2Responsive, 400);
         }
+    });
 
-        // SmartEditor2 생성
-        nhn.husky.EZCreator.createInIFrame({
-            oAppRef: oEditors,
-            elPlaceHolder: "body",
-            sSkinURI: skinUri,
-            fCreator: "createSEditor2",
-            htParams: { bUseToolbar:true, bUseVerticalResizer:false, bUseModeChanger:true },
-            fOnAppLoad: function () {
-                try { oEditors.getById["body"].exec("RESIZE_EDITING_AREA", [420]); } catch(e){}
-                // 폭 보정 가동
-                armSE2Fix();
-                // 약간의 지연 후 한 번 더 보정 (초기 레이아웃 이후)
-                setTimeout(armSE2Fix, 400);
-            }
-        });
+    // 리사이즈 시에도 보정
+    window.addEventListener('resize', function(){ requestAnimationFrame(makeSE2Responsive); });
+</script>
 
-        // 리사이즈 시에도 보정
-        window.addEventListener('resize', function(){ requestAnimationFrame(makeSE2Responsive); });
-
-
-    // ===== 3-2) 네가 쓰던 파일 드롭존/피커 스크립트 바인딩 =====
+<!-- 파일 드롭/피커 스크립트 & AJAX 제출 (네 기존 코드 유지) -->
+<script th:inline="javascript">
     (function(){
         var MAX_FILE_SIZE_MB = 20, MAX_REQ_SIZE_MB = 25;
         var MAX_FILE_SIZE = MAX_FILE_SIZE_MB*1024*1024, MAX_REQ_SIZE = MAX_REQ_SIZE_MB*1024*1024;
@@ -346,12 +326,10 @@
             $dz.on('dragleave', function(){ $dz.removeClass('bg-light'); });
             $dz.on('drop', function(e){ e.preventDefault(); $dz.removeClass('bg-light'); addFiles(e.originalEvent.dataTransfer.files); });
 
-            // 외부 초기화용
             window.__resetFiles = function(){ selected.clear(); syncHidden(); render(); };
             render();
         }
 
-        // create-inline에 맞춰 1회 바인딩
         $(function(){
             wirePicker({
                 btnId:'#addBtn-create',
@@ -364,9 +342,8 @@
         });
     })();
 
-    // ===== 3-3) AJAX 제출(프래그먼트 반환) =====
     (function(){
-        var $form = $('#postForm');           // 프래그먼트의 폼 id 그대로
+        var $form = $('#postForm');
         if(!$form.length) return;
 
         function prependRowHtml(html){
@@ -377,26 +354,21 @@
 
         $form.on('submit', function(e){
             e.preventDefault();
-
-            // 세디터 내용을 textarea로 반영
             try { oEditors?.getById?.["body"]?.exec("UPDATE_CONTENTS_FIELD", []); } catch(e){}
-
-            // 간단 유효성
             var title = $('#title').val()?.trim();
             var body  = $('#body').val()?.trim();
             if(!title){ alert('제목을 입력하세요.'); $('#title').focus(); return; }
             if(!body){  alert('본문을 입력하세요.'); return; }
 
-            var fd = new FormData(this); // hidden CSRF + files 포함 그대로 전송
+            var fd = new FormData(this);
             $.ajax({
-                url: $form.attr('action'),    // /posts/row
+                url: $form.attr('action'),
                 method: 'POST',
                 data: fd,
                 processData: false,
                 contentType: false,
                 success: function(html){
                     prependRowHtml(html);
-                    // 폼 초기화
                     $('#title').val('');
                     try { oEditors?.getById?.["body"]?.exec("SET_IR", ['']); } catch(e){ $('#body').val(''); }
                     $('#files-create').val('');
@@ -410,15 +382,6 @@
         });
     })();
 </script>
-
-
-
-
-
-
-
-
-
 
 
 </body>
