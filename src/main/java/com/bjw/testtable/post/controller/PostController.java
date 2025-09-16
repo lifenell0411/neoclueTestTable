@@ -86,10 +86,10 @@ public class PostController {
             @Valid @ModelAttribute("post") PostCreateRequest req,
             BindingResult binding,
             @RequestParam(value = "files", required = false) List<MultipartFile> files,
-            @AuthenticationPrincipal UserDetails user
+            @AuthenticationPrincipal UserDetails user, RedirectAttributes ra
     ) {
         if (binding.hasErrors()) return "posts/create";
-
+        ra.addFlashAttribute("msg", "등록되었습니다.");
         Long id = postService.create(user.getUsername(), req, files);
         return "redirect:/posts/" + id;
     }

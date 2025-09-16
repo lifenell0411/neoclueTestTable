@@ -189,18 +189,20 @@ public class PostServiceImpl implements PostService {
                 .orElseThrow(() -> new RuntimeException("게시글 없음"));
 
 
-        // 1) 첨부파일 엔티티들 조회
-        List<FileEntity> files = fileRepository.findByPostId(id);
+        // 2) 첨부파일 엔티티들 조회 (삭제 안 된 것만)
+        List<FileEntity> files = fileRepository.findByPostIdAndDeletedFalse(id);
 
-        // 2) 물리 파일 삭제
-        for (FileEntity f : files) {
-            fileStorageService.delete(f.getFilepath()); // default 메서드/impl 둘 다 OK
-        }
+        // 3) “표시만” 삭제 (물리 파일은 당장은 남겨둠)
+        post.markDeleted(currentUserId);
+        files.forEach(f -> f.markDeleted(currentUserId));
 
-        // 3) 파일 엔티티 삭제
-        fileRepository.deleteAll(files);
+        // 4) 저장
+        // JPA 변경감지로 자동 flush 됨. 명시 save 해도 OK.
+        postRepository.save(post);
+        fileRepository.saveAll(files);
 
-        // 4) 게시글 삭제
-        postRepository.delete(post);
+        // ※ 물리 파일은 당장 지우지 않음.
+        //    비용 절감/보관정책 필요 시, 배치/스케줄러로
+        //    "삭제된 지 N일 지난 파일"만 실제 파일시스템에서 제거하는 전략 추천.
     }
 }

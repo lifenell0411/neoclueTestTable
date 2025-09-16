@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
+    <script src="/js/beforeunload-killer.js"></script>
     <meta charset="utf-8">
     <title>게시글 목록</title>
 
@@ -380,6 +381,7 @@
         $form.on('submit', function(e){ //create-inline폼의 submit이 클릭되면 가로챈다
             e.preventDefault(); //원래의 "페이지 이동" 막음
             //스마트 에디터의 내용을 textarea(#body)로 복사
+
             try { oEditors?.getById?.["body"]?.exec("UPDATE_CONTENTS_FIELD", []); } catch(e){}
             var title = $('#title').val()?.trim();
             var body  = $('#body').val()?.trim();
@@ -409,6 +411,7 @@
     })();
 </script>
 
+<script defer th:src="@{/js/confirm.js}"></script>
 
 </body>
 </html>

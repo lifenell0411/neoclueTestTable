@@ -1,6 +1,7 @@
 <!doctype html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
+    <script src="/js/beforeunload-killer.js"></script>
     <meta charset="UTF-8"/>
     <title>게시글 수정</title>
     <link rel="stylesheet" th:href="@{/dist/css/adminlte.min.css}">
@@ -40,9 +41,10 @@
         <div class="card-header">게시글 수정</div>
         <div class="card-body">
 
-            <form id="postForm"
-                  th:action="@{/posts/{id}/update(id=${post.id})}"
-                  th:object="${post}" method="post" enctype="multipart/form-data">
+            <form th:action="@{/posts/{id}/update(id=${post.id})}"
+                  th:object="${post}"
+                  method="post"
+                  data-confirm="글을 수정하시겠습니까?">
 
 
             <!-- 제목 -->
@@ -452,6 +454,6 @@
         });
     });
 </script>
-
+<script defer th:src="@{/js/confirm.js}"></script>
 </body>
 </html>

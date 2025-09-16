@@ -6,9 +6,11 @@
         <div class="card-body">
 
 <!--            list하단에 들어갈 create, 액션은 /posts/row로 가는데 이게 PostRowController의 createRow메서드로 전송되어 post-row.html로 item을 가지고 넘겨짐-->
-            <form th:action="@{/posts/row}" method="post" enctype="multipart/form-data"
-                  th:object="${post}" id="postForm" novalidate>
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <form th:action="@{/posts/row}" method="post"
+                  th:object="${post}" id="postForm" novalidate
+                  data-confirm="글을 등록하시겠습니까?">
+
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
 
                 <div class="form-group">
                     <label for="title">제목</label>
