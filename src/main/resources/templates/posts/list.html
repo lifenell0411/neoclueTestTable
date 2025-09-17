@@ -180,12 +180,17 @@
                     </ul>
                 </div>
             </div><!-- /.card -->
+            <div class="d-flex justify-content-end mb-3">
+                <!-- 목록: 흰색(아웃라인) + 오른쪽 버튼과 간격 -->
+                <a th:href="@{/posts/list(page=0, size=${posts.size})}"
+                   class="btn btn-outline-secondary mr-2"
+                   data-bypass-unload="true">목록</a>
 
-            <!-- 글쓰기 버튼 (이 버튼은 경고 없이 이동) -->
-            <!-- 글쓰기 버튼 -->
-            <a th:href="@{/posts/create}"
-               class="btn btn-primary float-right mb-3"
-               data-bypass-unload="true">글쓰기</a>
+                <!-- 글쓰기: 파란색 기본 -->
+                <a th:href="@{/posts/create}"
+                   class="btn btn-primary"
+                   data-bypass-unload="true">글쓰기</a>
+            </div>
 
 
             <div class="clearfix"></div>
