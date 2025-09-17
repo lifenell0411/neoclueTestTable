@@ -47,6 +47,7 @@
             <form th:action="@{/posts/create}"
                   th:object="${post}"
                   method="post"
+                  enctype="multipart/form-data"
                   data-confirm="글을 등록하시겠습니까?"
                   onsubmit="try{oEditors.getById['body'].exec('UPDATE_CONTENTS_FIELD',[]);}catch(e){}">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
@@ -478,7 +479,7 @@
         });
     })();
 </script>
-
+<script defer th:src="@{/js/beforeunload-guard.js}"></script>
 <script defer th:src="@{/js/confirm.js}"></script>
 
 </body>

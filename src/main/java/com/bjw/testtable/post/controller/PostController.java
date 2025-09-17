@@ -1,9 +1,7 @@
 package com.bjw.testtable.post.controller;
 
-import com.bjw.testtable.domain.post.PostCreateRequest;
-import com.bjw.testtable.domain.post.PostDetailResponse;
-import com.bjw.testtable.domain.post.PostListResponse;
-import com.bjw.testtable.domain.post.PostUpdateRequest;
+import com.bjw.testtable.domain.post.*;
+import com.bjw.testtable.file.repository.FileRepository;
 import com.bjw.testtable.post.service.PostService;
 import com.bjw.testtable.security.PostSecurity;
 import jakarta.validation.Valid;
@@ -25,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
+
 @Slf4j
 @Controller
 @RequestMapping("/posts")
@@ -33,21 +32,34 @@ public class PostController {
 
     private final PostService postService;
     private final PostSecurity postSecurity;
-
+    private final FileRepository fileRepository;
 
 
     @PreAuthorize("isAuthenticated()")// 목록 + 검색 + 페이징
     @GetMapping("/list")
     public String list(@RequestParam(value = "q", required = false) String q,
+                       @RequestParam(defaultValue = "title") String field,
                        @RequestParam(defaultValue = "0") int page, //페이지네이션
                        @RequestParam(defaultValue = "10") int size,
                        Model model) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
-        Page<PostListResponse> posts = postService.list(q, pageable);
+        Page<PostListResponse> posts = postService.list(field, q, pageable);
+
+
+        java.util.List<Long> ids = posts.getContent().stream()
+                .map(PostListResponse::getId)   // ← PostListResponse에 getId()가 있어야 함
+                .collect(java.util.stream.Collectors.toList());
+
+        // 파일이 있는 글의 id만 한 번에 조회 (QueryDSL 구현 메서드)
+        java.util.Set<Long> idsWithFiles = ids.isEmpty()
+                ? java.util.Collections.emptySet()
+                : new java.util.HashSet<>(fileRepository.findPostIdsHavingFiles(ids));
 
         model.addAttribute("posts", posts); // 게시글 목록
         model.addAttribute("q", q);         // 검색어 유지용
+        model.addAttribute("field", field);
+        model.addAttribute("idsWithFiles", idsWithFiles);
         model.addAttribute("post", new PostCreateRequest());
         return "posts/list"; // templates/posts/list.html 로 렌더링
     }

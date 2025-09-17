@@ -1,5 +1,6 @@
 package com.bjw.testtable.domain.post;
 
+import com.bjw.testtable.util.Util;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -66,5 +67,23 @@ public class Post {
     @PreUpdate
     void onUpdate() {
         updateAt = LocalDateTime.now();
+    }
+
+    @Transient
+    public String getBodyPreview() {
+        if (body == null) return "";
+        String plain = body.replaceAll("<[^>]*>", " ")
+                .replace("&nbsp;", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
+        int limit = 70;
+
+        return plain.length() <= limit ? plain : plain.substring(0, limit) + "…";
+    }
+
+
+    @Transient
+    public String getTitlePreview() {
+        return Util.preview(this.body, 30);
     }
 }

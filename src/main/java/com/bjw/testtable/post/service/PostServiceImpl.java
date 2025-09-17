@@ -10,6 +10,7 @@ import com.bjw.testtable.util.Util;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,6 +24,7 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 
+import static com.bjw.testtable.util.Util.preview;
 
 
 @Slf4j
@@ -103,17 +105,34 @@ public class PostServiceImpl implements PostService {
                 .build();
     }
 
+
     @Override
-    public Page<PostListResponse> list(String query, Pageable pageable) {
-        Page<Post> page = postRepository.search(query, pageable);
-        return page.map(p -> PostListResponse.builder()
-                .id(p.getId())
-                .title(p.getTitle())
-                .authorUserId(p.getUserId())
-                .bodyPreview(html.preview(p.getBody(), 70))
-                .createdAt(p.getCreatedAt())
-                .updateAt(p.getUpdateAt())
-                .build());
+    public Page<PostListResponse> list(String field, String q, Pageable pageable) {
+        Page<PostListResponse> page = postRepository.search(field, q, pageable);
+
+        List<PostListResponse> trimmed = page.getContent().stream()
+                .map(p -> PostListResponse.builder()
+                        .id(p.getId())
+                        .title(preview(p.getTitle(), 10))              // 제목 30자
+                        .authorUserId(p.getAuthorUserId())
+                        .bodyPreview(preview(p.getBodyPreview(), 20))  // 본문 70자
+                        .createdAt(p.getCreatedAt())
+                        .updateAt(p.getUpdateAt())
+                        .build())
+                .collect(java.util.stream.Collectors.toList()); // ← Collectors로 명시
+
+        return new PageImpl<>(trimmed, pageable, page.getTotalElements());
+    }
+
+    // 필요시 HTML 제거까지
+    private static String toPreview(String body, int max) {
+        if (body == null) return "";
+        // 가볍게 태그 제거/공백 정리 (필요 없으면 바로 substring만)
+        String plain = body.replaceAll("<[^>]*>", " ")
+                .replace("&nbsp;", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
+        return plain.length() <= max ? plain : plain.substring(0, max);
     }
 
     @Override

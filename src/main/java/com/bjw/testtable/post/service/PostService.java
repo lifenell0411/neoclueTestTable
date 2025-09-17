@@ -13,7 +13,7 @@ import java.util.Collection;
 import java.util.List;
 
 public interface PostService {
-    Page<PostListResponse> list(String query, Pageable pageable);
+    Page<PostListResponse> list(String field, String query, Pageable pageable);
     PostDetailResponse get(Long id);
     void update(Long id,
                 String currentUserId,

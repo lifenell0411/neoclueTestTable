@@ -2,6 +2,9 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <script src="/js/beforeunload-killer.js"></script>
+    <!-- update.html 의 <head> 안, 가능한 한 가장 위에 -->
+
+
     <meta charset="UTF-8"/>
     <title>게시글 수정</title>
     <link rel="stylesheet" th:href="@{/dist/css/adminlte.min.css}">
@@ -44,7 +47,9 @@
             <form th:action="@{/posts/{id}/update(id=${post.id})}"
                   th:object="${post}"
                   method="post"
-                  data-confirm="글을 수정하시겠습니까?">
+                  enctype="multipart/form-data"
+                  data-confirm="글을 수정하시겠습니까?"
+                  data-block-unload-on-submit>
 
 
             <!-- 제목 -->
@@ -454,6 +459,8 @@
         });
     });
 </script>
+<script defer th:src="@{/js/beforeunload-guard.js}"></script>
+
 <script defer th:src="@{/js/confirm.js}"></script>
 </body>
 </html>

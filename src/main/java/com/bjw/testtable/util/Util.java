@@ -1,17 +1,17 @@
 package com.bjw.testtable.util;
 
 import org.springframework.stereotype.Component;
-import org.springframework.web.util.HtmlUtils;
 @Component("html")
 public class Util {
 
 
-
-        public String preview(String html, int max) {
-            if (html == null) html = "";
-            String text = HtmlUtils.htmlUnescape(html.replaceAll("<[^>]*>", " "));
-            text = text.replaceAll("\\s+", " ").trim();
-            return text.length() > max ? text.substring(0, max) + "…" : text;
-        }
+    private Util() {}
+    public static String preview(String s, int max) {
+        if (s == null) return "";
+        String plain = s.replaceAll("<[^>]*>", " ")  // 태그 제거(본문이 HTML일 수 있으면)
+                .replace("&nbsp;", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
+        return (plain.length() > max) ? plain.substring(0, max) + "..." : plain;
     }
-
+}
