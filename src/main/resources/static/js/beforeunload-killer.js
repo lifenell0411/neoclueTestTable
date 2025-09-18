@@ -1,39 +1,66 @@
-// /static/js/beforeunload-killer.js
-(function () {
-    function disableBeforeUnloadOnce() {
-        try { window.onbeforeunload = null; } catch(_) {}
-        try {
-            if (window.jQuery) {
-                jQuery(window).off('beforeunload');
-                jQuery(document).off('beforeunload');
-            }
-        } catch(_) {}
+// /js/beforeunload-killer.js
+(function(){
+    function apply(win){
+        try{
+            // 1) 이후 등록될 beforeunload 리스너 무시
+            var _add = win.addEventListener.bind(win);
+            win.addEventListener = function(type, listener, options){
+                if (type === 'beforeunload') return; // 등록 자체 무시
+                return _add(type, listener, options);
+            };
 
-        // SmartEditor2 iframe 쪽도 같이 끈다
-        var iframe = document.querySelector('#editor-slot iframe') ||
-            document.querySelector('iframe[src*="SmartEditor2Skin"]');
-        if (iframe && iframe.contentWindow) {
-            try { iframe.contentWindow.onbeforeunload = null; } catch(_) {}
+            // 2) onbeforeunload 직접 할당 봉인
+            try{
+                Object.defineProperty(win, 'onbeforeunload', {
+                    configurable: true,
+                    get(){ return null; },
+                    set(_){ /* block */ }
+                });
+            }catch(_){
+                try { win.onbeforeunload = null; } catch(__){}
+            }
+
+            // 3) 혹시 남았을지 모를 핸들러 전파 차단(캡처 단계)
+            _add('beforeunload', function(e){
+                // 절대 preventDefault/returnValue 금지!
+                e.stopImmediatePropagation();
+            }, true);
+
+            // 4) jQuery로 붙은 핸들러 off
+            if (win.jQuery){
+                try { win.jQuery(win).off('beforeunload'); win.jQuery(win.document).off('beforeunload'); } catch(_){}
+            }
+
+            // 디버그
+            if (win.console && win.location) {
+                win.console.debug('[beforeunload-killer] patched:', win.location.href);
+            }
+        }catch(e){
+            try { win.console && win.console.debug('[beforeunload-killer] error', e); } catch(_){}
         }
     }
 
-    // 제출 직전에 여러 번 호출해서 확실히 무력화
-    function disableBeforeUnloadBurst() {
-        disableBeforeUnloadOnce();
-        setTimeout(disableBeforeUnloadOnce, 0);
-        setTimeout(disableBeforeUnloadOnce, 50);
-        setTimeout(disableBeforeUnloadOnce, 150);
-        setTimeout(disableBeforeUnloadOnce, 300);
+    // 상위창에 즉시 적용
+    apply(window);
+
+    // 에디터 iframe(과 이후 동적 생성분)에도 적용
+    function patchIframes(){
+        document.querySelectorAll('iframe').forEach(function(ifr){
+            try{
+                var w = ifr.contentWindow || (ifr.contentDocument && ifr.contentDocument.defaultView);
+                if (w && !w.__beforeunloadKillerApplied){
+                    apply(w);
+                    w.__beforeunloadKillerApplied = true;
+                }
+            }catch(_){}
+        });
     }
+    // 초반 폴링 + 변이감시 (모달 열릴 때 등)
+    var tries = 0, t = setInterval(function(){
+        patchIframes();
+        if (++tries > 80) clearInterval(t);
+    }, 120);
 
-    // data-block-unload-on-submit 달린 폼만 대상
-    document.addEventListener('submit', function (e) {
-        var form = e.target;
-        if (!form.matches('[data-block-unload-on-submit]')) return;
-
-        // 네이티브 leave 팝업/에디터 훅 제거
-        disableBeforeUnloadBurst();
-        // 리다이렉트 전후로도 한 번 더
-        window.addEventListener('pagehide', disableBeforeUnloadBurst, { once: true, capture: true });
-    }, true);
+    var mo = new MutationObserver(function(){ patchIframes(); });
+    mo.observe(document.documentElement, { childList:true, subtree:true });
 })();
