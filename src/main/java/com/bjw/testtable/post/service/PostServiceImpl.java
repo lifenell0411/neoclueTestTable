@@ -107,8 +107,8 @@ public class PostServiceImpl implements PostService {
 
 
     @Override
-    public Page<PostListResponse> list(String field, String q, Pageable pageable) {
-        Page<PostListResponse> page = postRepository.search(field, q, pageable);
+    public Page<PostListResponse> list(String field, String query, Pageable pageable) {
+        Page<PostListResponse> page = postRepository.search(field, query, pageable);
 
         List<PostListResponse> trimmed = page.getContent().stream()
                 .map(p -> PostListResponse.builder()
@@ -126,7 +126,7 @@ public class PostServiceImpl implements PostService {
 
 
     @Override
-    @Transactional
+    @Transactional //메서드가 끝나면 sql날려서 db변경함
     @PreAuthorize("hasRole('ADMIN') or @postSecurity.isOwner(#id, authentication)")
     public void update(Long id,
                        String currentUserId,
@@ -134,12 +134,12 @@ public class PostServiceImpl implements PostService {
                        List<MultipartFile> newFiles,
                        List<Long> deleteFileIds) {
 
-        Post post = postRepository.findById(id)
+        Post post = postRepository.findById(id) //영속엔티티
                 .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다. id=" + id));
 
 
         // 본문/제목 수정
-        post.setTitle(req.getTitle());
+        post.setTitle(req.getTitle()); //더티체킹?영속엔티티의 필드를 바꾸면 커밋 시점에 자동으로 updateSQL날림 그래서 save가 필요없음
         post.setBody(req.getBody());
 
         if (hasUpdateAt(post)) {
@@ -171,8 +171,8 @@ public class PostServiceImpl implements PostService {
                         .originalFilename(mf.getOriginalFilename())
                         .size(mf.getSize())
                         .build();
-                log.info("upload: name={} ct={}", mf.getOriginalFilename(), mf.getContentType());
-                fileRepository.save(fe);
+
+                fileRepository.save(fe); //new 객체는 비영속이라 save 소환해줘야 db에 insert됨
             }
         }
 
@@ -189,7 +189,7 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    @Transactional
+    @Transactional //ADMIN이거나 해당 글의 소유자만 접근 가능
     @PreAuthorize("hasRole('ADMIN') or @postSecurity.isOwner(#id, authentication)")
     public void delete(Long id, String currentUserId, Collection<? extends GrantedAuthority> authorities) {
 

@@ -41,28 +41,35 @@ public class PostController {
 
     @PreAuthorize("isAuthenticated()")// 목록 + 검색 + 페이징
     @GetMapping("/list")
-    public String list(@RequestParam(value = "q", required = false) String q,
+    public String list(@RequestParam(value = "query", required = false) String query,
                        @RequestParam(defaultValue = "title") String field,
                        @RequestParam(defaultValue = "0") int page, //페이지네이션
                        @RequestParam(defaultValue = "10") int size,
                        Model model) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
-        Page<PostListResponse> posts = postService.list(field, q, pageable);
+        Page<PostListResponse> posts = postService.list(field, query, pageable);
+        //id list뽑음
 
-
+                                         //지금 표시된 리스트 리스폰스의 list를 ids로 가져옴
         java.util.List<Long> ids = posts.getContent().stream()
-                .map(PostListResponse::getId)   // ← PostListResponse에 getId()가 있어야 함
+                .map(PostListResponse::getId)   // ← PostListResponse에서 id만 꺼냄(long타입)
                 .collect(java.util.stream.Collectors.toList());
 
         // 파일이 있는 글의 id만 한 번에 조회 (QueryDSL 구현 메서드)
         java.util.Set<Long> idsWithFiles = ids.isEmpty()
                 ? java.util.Collections.emptySet()
-                : new java.util.HashSet<>(fileRepository.findPostIdsHavingFiles(ids));
+                : new java.util.HashSet<>(fileRepository.findPostIdsHavingFiles(ids)); //삭제되지않은 파일이 있는 게시글묶음 조회해서 idsWithFiles에 담음
+//              이걸 list에서 Y로 표기되게 써먹음
+
+//        사용자 → Controller.list → Service.list → Repository.search → DB
+//→ Repository 반환 → Service 가공 → Controller에서 idsWithFiles 조회 → Model에 담기 → Thymeleaf 렌더 → HTML 응답 → 브라우저 표시(+JS 초기화)
+
+
 
         model.addAttribute("posts", posts); // 게시글 목록
-        model.addAttribute("q", q);         // 검색어 유지용
-        model.addAttribute("field", field);
+        model.addAttribute("query", query);         // 검색어
+        model.addAttribute("field", field); //검색 필드 (제목, 내용, 아이디)
         model.addAttribute("idsWithFiles", idsWithFiles);
         model.addAttribute("post", new PostCreateRequest());
         return "posts/list"; // templates/posts/list.html 로 렌더링

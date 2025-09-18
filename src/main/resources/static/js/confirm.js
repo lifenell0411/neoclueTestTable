@@ -13,10 +13,12 @@
             }
         }
 
-        // 2) SmartEditor2 쓰는 폼이면 전송 직전에 본문을 textarea(#body)로 복사
+        // 2) SmartEditor2 쓰는 폼이면 전송 직전에 본문을 textarea(name=body)로 복사
         try {
-            if (form.querySelector('#body') && window.oEditors?.getById?.['body']) {
-                oEditors.getById['body'].exec('UPDATE_CONTENTS_FIELD', []);
+            const ta = form.querySelector('textarea[name="body"]');  // ← pf 상관없이 찾기
+            const id = ta && ta.id;
+            if (id && window.oEditors?.getById?.[id]) {
+                oEditors.getById[id].exec('UPDATE_CONTENTS_FIELD', []);
             }
         } catch (_) { /* noop */ }
     }, true);

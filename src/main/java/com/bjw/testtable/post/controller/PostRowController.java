@@ -27,7 +27,7 @@ public class PostRowController {
 
     private final PostService postService;
 
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated()") //비동기로 데려온 데이터 여기서 실행
     @PostMapping(value="/row",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
             produces = MediaType.TEXT_HTML_VALUE)

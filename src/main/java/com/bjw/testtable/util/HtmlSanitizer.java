@@ -19,10 +19,7 @@ public class HtmlSanitizer {
         return clean.replaceAll("[\\u200B\\u200C\\u200D\\uFEFF]", "");
     }
 
-    public static String toText(String html){
-        return html == null ? "" : Jsoup.parse(html).text();
-    }
-
+    //list에서 글 길면 ... 찍기
     public static String preview(String plainText, int max){
         if (plainText == null) return "";
         return plainText.length() <= max ? plainText : plainText.substring(0, max) + "…";

@@ -25,10 +25,10 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
 
 
     @Override
-    public Page<PostListResponse> search(String field, String q, Pageable pageable) {
+    public Page<PostListResponse> search(String field, String query, Pageable pageable) {
         BooleanBuilder where = new BooleanBuilder().and(post.deleted.isFalse());
 
-        String kw = (q == null) ? "" : q.trim();
+        String kw = (query == null) ? "" : query.trim();
         if (!kw.isEmpty()) {
             String like = "%" + kw.toLowerCase() + "%";
             // CLOB 안전 비교를 위해 body를 문자열로 캐스팅
