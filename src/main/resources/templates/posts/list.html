@@ -2,6 +2,7 @@
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
     <script src="/js/beforeunload-killer.js"></script>
+<!--    페이지를 나가시겠습니까? 라는 창이 뜨지않도록 막아줌-->
     <meta charset="utf-8">
     <title>게시글 목록</title>
 
@@ -21,57 +22,8 @@
     <script th:src="@{/se2/js/service/HuskyEZCreator.js}" charset="utf-8"></script>
     <link rel="preload" href="/se2/SmartEditor2Skin.html" as="fetch">
 
-    <!-- 에디터 바깥 iframe 100% -->
-    <style>
-        .editor-slot iframe { width:100% !important; min-width:100% !important; display:block; }
-        .editor-slot { width:100%; }
-    </style>
+ ㅈ
 
-
-    <!-- create 카드 폭을 list와 독립적으로 제어 -->
-    <style>
-        .create-inline-wrap {
-            max-width: 980px;      /* create 페이지 느낌의 폭 */
-            margin: 48px auto 0;   /* 위 여백 + 가운데 정렬 */
-        }
-    </style>
-
-
-
-
-    <!-- ✅ 리스트 페이지에서 beforeunload 경고 완전 차단 (정상 버전: preventDefault 절대 금지) -->
-    <script>
-        (function () {
-            // 앞으로 등록될 beforeunload 리스너 자체를 차단
-            const _add = window.addEventListener;
-            window.addEventListener = function (type, listener, options) {
-                if (type === 'beforeunload') return; // 등록 무시
-                return _add.call(this, type, listener, options);
-            };
-
-            // window.onbeforeunload = ... 같은 직접 할당도 원천봉쇄
-            try {
-                Object.defineProperty(window, 'onbeforeunload', {
-                    configurable: true,
-                    get() { return null; },
-                    set(_) { /* block */ }
-                });
-            } catch (_) {}
-
-            // 혹시 이미 붙어있는 리스너보다 먼저 실행해서 “전파만” 끊는다.
-            // ⚠️ 여기서 절대 e.preventDefault()나 e.returnValue 설정하지 말 것!
-            _add.call(window, 'beforeunload', function (e) {
-                e.stopImmediatePropagation(); // 다른 리스너 실행 못 하게
-                // do NOT call e.preventDefault()
-                // do NOT set e.returnValue
-            }, true);
-
-            // jQuery가 미리 붙였던게 있으면 제거 시도
-            if (window.jQuery) {
-                try { jQuery(window).off('beforeunload'); jQuery(document).off('beforeunload'); } catch (_) {}
-            }
-        })();
-    </script>
 
     <style>
         /* 카드 헤더에서 검색 폼을 오른쪽 끝으로 */
@@ -216,6 +168,10 @@
         </div><!-- /.col -->
     </div><!-- /.row -->
 </div><!-- /.container-fluid -->
+
+
+
+
 <!-- 새창(모달) -->
 <div class="modal fade" id="createModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
@@ -229,11 +185,15 @@
             <div class="modal-body">
                 <!-- 모달: mdl- prefix -->
                 <div th:replace="~{posts/_create-inline :: inlineCreate('mdl-')}"></div>
+<!--                모달에서도 create-inline사용, 호칭 중복되지 않도록 따로 설정-->
             </div>
         </div>
     </div>
 </div>
-<!-- 용량 모달: 페이지 전역 1회만 -->
+
+
+
+<!-- 용량 제한 모달: 페이지 전역 1회만 -->
 <div class="modal fade" id="sizeLimitModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
@@ -252,28 +212,19 @@
 </div>
 
 
+
+
 <!-- 필수 JS -->
 <script th:src="@{/plugins/jquery/jquery.min.js}"></script>
 <script th:src="@{/plugins/bootstrap/js/bootstrap.bundle.min.js}"></script>
 <script th:src="@{/dist/js/adminlte.min.js}"></script>
 
-<!-- 에디터 폭 보강: iframe 뜰 때까지 짧게 폴링 -->
-<script th:inline="javascript">
-    var __se2Watch = setInterval(function(){
-        var iframe = document.querySelector('#editor-slot iframe');
-        if(!iframe) return;
-        var doc = iframe.contentDocument || iframe.contentWindow?.document;
-        if(!doc) return;
-        try { if (window.makeSE2Responsive) window.makeSE2Responsive(); } catch(e){}
-        clearInterval(__se2Watch);
-    }, 120);
-    setTimeout(function(){ clearInterval(__se2Watch); }, 8000);
-</script>
 
 
 
 
-<!-- ✅ list.html 하단에 추가: 인라인+모달 2벌 폼 공용 초기화 -->
+
+<!--   인라인+모달 2벌 폼 공용 초기화 -->
 <script th:inline="javascript">
     (function(){
 
@@ -458,7 +409,7 @@
             render();
         }
 
-        // ▷ AJAX 제출 (폼별 prefix)
+        // ▷ AJAX 제출 (폼별 prefix, list하단과 새창모달 둘다 비동기)
         function bindAjaxSubmit(pf, opts){
             var $form = $('#' + pf + 'postForm');
             if(!$form.length) return;
@@ -539,395 +490,6 @@
 </script>
 
 
-
-
-<!--&lt;!&ndash; SmartEditor2 스킨 로드 + 반응형 보정 &ndash;&gt;-->
-<!--<script th:inline="javascript">-->
-<!--    var oEditors = [];-->
-<!--    var skinUri = /*[[@{/se2/SmartEditor2Skin.html}]]*/ '/se2/SmartEditor2Skin.html';-->
-<!--    skinUri += (skinUri.indexOf('?') === -1 ? '?' : '&') + 'v=' + Date.now();-->
-
-<!--    function makeSE2Responsive(){-->
-<!--        var iframe = document.querySelector('#editor-slot iframe') ||-->
-<!--            document.querySelector('iframe[src*="SmartEditor2Skin"]');-->
-<!--        if (!iframe) return false;-->
-
-<!--        iframe.style.width = '100%';-->
-<!--        iframe.removeAttribute('width');-->
-
-<!--        var doc = iframe.contentDocument || iframe.contentWindow?.document;-->
-<!--        if (!doc) return false;-->
-
-<!--        if (!doc.getElementById('se2-rwd-css')) {-->
-<!--            var style = doc.createElement('style');-->
-<!--            style.id = 'se2-rwd-css';-->
-<!--            style.textContent = `-->
-<!--          html, body { width:100% !important; overflow-x:hidden !important; }-->
-<!--          .se2_mwrapper, .se2_inwrap, .se2_workarea, .se2_workspace,-->
-<!--          .se2_editor, .se2_input_area, .se2_ui_layout,-->
-<!--          .se2_container, .se2_canvas, .se2_wysiwyg_area,-->
-<!--          iframe, table, td { max-width:100% !important; width:100% !important; }-->
-<!--        `;-->
-<!--            doc.head.appendChild(style);-->
-<!--        }-->
-
-<!--        function normalize(root){-->
-<!--            root.querySelectorAll('[width], [style*="width"]').forEach(function(el){-->
-<!--                var wAttr = el.getAttribute && el.getAttribute('width');-->
-<!--                if (wAttr && /^\d+$/.test(wAttr)) el.setAttribute('width', '100%');-->
-<!--                var sw = el.style && el.style.width;-->
-<!--                if (sw && /px/.test(sw)) el.style.width = '100%';-->
-<!--            });-->
-<!--        }-->
-<!--        normalize(doc);-->
-
-<!--        if (!doc.__se2Observer) {-->
-<!--            doc.__se2Observer = new MutationObserver(function(muts){-->
-<!--                muts.forEach(function(m){-->
-<!--                    if (m.type === 'attributes') normalize(m.target);-->
-<!--                    m.addedNodes && m.addedNodes.forEach(function(n){-->
-<!--                        if (n.nodeType === 1) normalize(n);-->
-<!--                    });-->
-<!--                });-->
-<!--            });-->
-<!--            doc.__se2Observer.observe(doc.documentElement, {-->
-<!--                subtree: true, childList: true, attributes: true,-->
-<!--                attributeFilter: ['style','width']-->
-<!--            });-->
-<!--        }-->
-<!--        return true;-->
-<!--    }-->
-
-<!--    // SmartEditor2 생성-->
-<!--    nhn.husky.EZCreator.createInIFrame({-->
-<!--        oAppRef: oEditors,-->
-<!--        elPlaceHolder: "body",-->
-<!--        sSkinURI: skinUri,-->
-<!--        fCreator: "createSEditor2",-->
-<!--        htParams: { bUseToolbar:true, bUseVerticalResizer:false, bUseModeChanger:true },-->
-<!--        fOnAppLoad: function () {-->
-<!--            try { oEditors.getById["body"].exec("RESIZE_EDITING_AREA", [420]); } catch(e){}-->
-<!--            // 폭 보정 가동-->
-<!--            (function arm(){-->
-<!--                var ok = makeSE2Responsive();-->
-<!--                if (ok) return;-->
-<!--                var tries = 0, t = setInterval(function(){-->
-<!--                    if (makeSE2Responsive() || ++tries > 60) clearInterval(t);-->
-<!--                }, 100);-->
-<!--            })();-->
-<!--            setTimeout(makeSE2Responsive, 400);-->
-<!--        }-->
-<!--    });-->
-
-<!--    // 리사이즈 시에도 보정-->
-<!--    window.addEventListener('resize', function(){ requestAnimationFrame(makeSE2Responsive); });-->
-<!--</script>-->
-
-<!-- 파일 드롭/피커 스크립트 & AJAX 제출 (네 기존 코드 유지) -->
-<!--<script th:inline="javascript">-->
-<!--    (function(){-->
-<!--        var MAX_FILE_SIZE_MB = 20, MAX_REQ_SIZE_MB = 25;-->
-<!--        var MAX_FILE_SIZE = MAX_FILE_SIZE_MB*1024*1024, MAX_REQ_SIZE = MAX_REQ_SIZE_MB*1024*1024;-->
-
-<!--        function fmt(b){var u=['B','KB','MB','GB'],i=0,n=b;while(n>=1024&&i<u.length-1){n/=1024;i++;}return (n<10&&i>0?n.toFixed(1):Math.round(n))+' '+u[i];}-->
-<!--        function keyOf(f){ return [f.name,f.size,f.lastModified].join('#'); }-->
-<!--        function showSizeModal(html){ $('#sizeLimitBody').html(html); $('#sizeLimitModal').modal('show'); }-->
-
-<!--        function wirePicker(opts){-->
-<!--            var $form=$(opts.formSelector||'#postForm');-->
-<!--            var $btn=$(opts.btnId), $dz=$(opts.dropzoneId),-->
-<!--                $picker=$(opts.pickerId), $input=$(opts.submitInputId), $list=$(opts.listId);-->
-<!--            if(!$btn.length||!$picker.length||!$input.length||!$list.length) return;-->
-
-<!--            var selected=new Map();-->
-
-<!--            function validate(files){-->
-<!--                var total=0, over=[];-->
-<!--                var all=[...selected.values(), ...Array.from(files)];-->
-<!--                for(var i=0;i<all.length;i++){ total+=all[i].size; if(all[i].size>MAX_FILE_SIZE) over.push(all[i]); }-->
-<!--                if(over.length || total>MAX_REQ_SIZE){-->
-<!--                    var html='';-->
-<!--                    if(over.length){-->
-<!--                        html += '<div class="mb-2">개별 파일은 최대 <b>'+MAX_FILE_SIZE_MB+'MB</b>까지 허용합니다.</div><ul>';-->
-<!--                        over.forEach(f=>html+='<li>'+f.name+' — '+fmt(f.size)+'</li>'); html+='</ul>';-->
-<!--                    }-->
-<!--                    if(total>MAX_REQ_SIZE){-->
-<!--                        html+='<div class="mt-2">선택한 파일 합계가 <b>'+MAX_REQ_SIZE_MB+'MB</b>를 초과했습니다.</div>';-->
-<!--                    }-->
-<!--                    showSizeModal(html); return false;-->
-<!--                }-->
-<!--                return true;-->
-<!--            }-->
-<!--            function syncHidden(){-->
-<!--                var dt=new DataTransfer(); selected.forEach(f=>dt.items.add(f));-->
-<!--                $input[0].files = dt.files;-->
-<!--            }-->
-<!--            function render(){-->
-<!--                $list.empty();-->
-<!--                if(selected.size===0){ $list.append('<li class="list-group-item text-muted">선택된 파일이 없습니다.</li>'); return; }-->
-<!--                selected.forEach(function(f,k){-->
-<!--                    var $li=$('<li class="list-group-item d-flex justify-content-between align-items-center"></li>');-->
-<!--                    $li.append('<span>'+f.name+' <small class="text-muted">— '+fmt(f.size)+'</small></span>');-->
-<!--                    var $del=$('<button type="button" class="btn btn-sm btn-outline-danger">삭제</button>');-->
-<!--                    $del.on('click', function(){ selected.delete(k); syncHidden(); render(); });-->
-<!--                    $li.append($del); $list.append($li);-->
-<!--                });-->
-<!--            }-->
-<!--            function addFiles(fileList){-->
-<!--                var arr=Array.from(fileList||[]), unique=arr.filter(f=>!selected.has(keyOf(f)));-->
-<!--                if(unique.length===0) return;-->
-<!--                if(!validate(unique)) return;-->
-<!--                unique.forEach(f=>selected.set(keyOf(f),f));-->
-<!--                syncHidden(); render();-->
-<!--            }-->
-<!--            $btn.on('click', ()=> $picker.trigger('click'));-->
-<!--            $picker.on('change', function(){ addFiles(this.files); this.value=''; });-->
-<!--            $dz.on('dragover', function(e){ e.preventDefault(); e.originalEvent.dataTransfer.dropEffect='copy'; $dz.addClass('bg-light'); });-->
-<!--            $dz.on('dragleave', function(){ $dz.removeClass('bg-light'); });-->
-<!--            $dz.on('drop', function(e){ e.preventDefault(); $dz.removeClass('bg-light'); addFiles(e.originalEvent.dataTransfer.files); });-->
-
-<!--            window.__resetFiles = function(){ selected.clear(); syncHidden(); render(); };-->
-<!--            render();-->
-<!--        }-->
-
-<!--        $(function(){-->
-<!--            wirePicker({-->
-<!--                btnId:'#addBtn-create',-->
-<!--                dropzoneId:'#dz-create',-->
-<!--                pickerId:'#picker-create',-->
-<!--                submitInputId:'#files-create',-->
-<!--                listId:'#list-create',-->
-<!--                formSelector:'#postForm'-->
-<!--            });-->
-<!--        });-->
-<!--    })();-->
-
-
-
-
-
-<!--    (function(){ //submit가로채서 등록절차 진행 createRow로 보냄 Controller-->
-<!--        var $form = $('#postForm'); //postForm은 _crate-inline 폼-->
-<!--        if(!$form.length) return;-->
-
-<!--        function prependRowHtml(html){-->
-<!--            if(!html) return;-->
-<!--            $('#post-list-body').prepend(html); //post-list-body 글 들어가는 목록에 prepend(추가)html을.여기서 html은 _post-row.html의 tr~tr. 곧 글 한줄을 말함.최근글이 맨 위로 뜨게.-->
-<!--            $('#no-posts-row').remove();-->
-<!--        }-->
-
-<!--        $form.on('submit', function(e){ //create-inline폼의 submit이 클릭되면 가로챈다-->
-<!--            e.preventDefault(); //원래의 "페이지 이동" 막음-->
-<!--            //스마트 에디터의 내용을 textarea(#body)로 복사-->
-
-<!--            try { oEditors?.getById?.["body"]?.exec("UPDATE_CONTENTS_FIELD", []); } catch(e){}-->
-<!--            var title = $('#title').val()?.trim();-->
-<!--            var body  = $('#body').val()?.trim();-->
-<!--            if(!title){ alert('제목을 입력하세요.'); $('#title').focus(); return; }-->
-<!--            if(!body){  alert('본문을 입력하세요.'); return; }-->
-
-<!--            var fd = new FormData(this); //this 현재 submit된 폼 데이터, name으로 필드를 모으는데 name="title" input title=123 name ="body" textarea body=안녕" 뭐 이런식?-->
-<!--            $.ajax({-->
-<!--                url: $form.attr('action'),-->
-<!--                method: 'POST',-->
-<!--                data: fd,-->
-<!--                processData: false,-->
-<!--                contentType: false,-->
-<!--                success: function (html) {-->
-<!--                    // 1) 행 prepend-->
-<!--                    prependRowHtml(html);-->
-
-<!--                    // 2) 방금 추가된 첫 행 잡기-->
-<!--                    const tbody = document.getElementById('post-list-body');-->
-<!--                    const firstRow = tbody ? tbody.querySelector('tr') : null;-->
-
-<!--                    // 3) (선택) 새로 들어온 행 안의 링크들에 우회 속성 부착-->
-<!--                    //    서버 템플릿에서 이미 data-bypass-unload="true" 넣었다면 이 블록은 생략 가능-->
-<!--                    if (firstRow) {-->
-<!--                        firstRow.querySelectorAll('a[href]')-->
-<!--                            .forEach(a => a.setAttribute('data-bypass-unload', 'true'));-->
-<!--                    }-->
-
-<!--                    // 4) 첨부파일 Y 표시 보정 (이번 제출에 실제 파일이 있었으면 Y)-->
-<!--                    try {-->
-<!--                        const hasFiles = (document.getElementById('files-create')?.files?.length || 0) > 0;-->
-<!--                        if (hasFiles && firstRow) {-->
-<!--                            const cell = firstRow ? firstRow.querySelector('.col-hasfile') : null;-->
-<!--                            if (cell) cell.textContent = 'Y';-->
-<!--                        }-->
-<!--                    } catch (_) {}-->
-
-<!--                    // 5) 폼/에디터/파일 입력 초기화 (네 기존 코드)-->
-<!--                    $('#title').val('');-->
-<!--                    try { oEditors?.getById?.["body"]?.exec("SET_IR", ['']); } catch (e) { $('#body').val(''); }-->
-<!--                    $('#files-create').val('');-->
-<!--                    window.__resetFiles?.();-->
-
-<!--                    // 6) 더티 가드 리셋-->
-<!--                    window.__dirtyGuard?.reset?.();-->
-
-<!--                    // 7) (옵션) beforeunload 킬러 재적용 — 에디터가 내부에서 다시 걸어둘 수 있어서 한 번 더-->
-<!--                    try {-->
-<!--                        killBeforeUnload(window);-->
-<!--                        const ifr = document.querySelector('#editor-slot iframe');-->
-<!--                        if (ifr?.contentWindow) killBeforeUnload(ifr.contentWindow);-->
-<!--                    } catch (_) {}-->
-
-<!--                    // 8) (임시 디버깅) 필요할 때만 켜고, 확인 끝나면 지워라-->
-<!--                    // window.addEventListener('beforeunload', e => console.log('FIRE', window.__dirtyGuard), true);-->
-<!--// 성공 콜백 맨 끝쯤-->
-<!--                    window.scrollTo({ top: 0, behavior: 'smooth' }); // 부드럽게 맨 위로-->
-
-<!--                    alert('등록되었습니다.');-->
-<!--                },-->
-<!--                error: function (xhr) {-->
-<!--                    alert('등록 실패: ' + (xhr.responseText || ''));-->
-<!--                }-->
-<!--            });-->
-
-<!--        });-->
-<!--    })();-->
-<!--</script>-->
-
-
-<script>
-    // 상/하위(window, iframe) 어디든 beforeunload를 완전 차단
-    function killBeforeUnload(win){
-        try{
-            // 1) addEventListener 후킹: beforeunload 등록 자체를 무시
-            const _add = win.addEventListener.bind(win);
-            win.addEventListener = function(type, listener, options){
-                if (type === 'beforeunload') return; // 등록 차단
-                return _add(type, listener, options);
-            };
-
-            // 2) onbeforeunload 직접 할당도 봉인
-            try {
-                Object.defineProperty(win, 'onbeforeunload', {
-                    configurable: true,
-                    get(){ return null; },
-                    set(_){ /* block */ }
-                });
-            } catch(_) {
-                try { win.onbeforeunload = null; } catch(__) {}
-            }
-
-            // 3) 이미 붙어 있을 수도 있는 핸들러의 전파만 끊기(캡처 단계)
-            _add('beforeunload', function(e){
-                e.stopImmediatePropagation();
-                // 절대 e.preventDefault()/returnValue 설정 금지
-            }, true);
-
-            // 4) jQuery로 걸어둔 것도 해제 시도
-            if (win.jQuery) {
-                try { win.jQuery(win).off('beforeunload'); win.jQuery(win.document).off('beforeunload'); } catch(_){}
-            }
-
-            // 디버그
-            console.debug('[killer] applied:', win.location?.href || '(iframe)');
-        }catch(e){
-            console.debug('[killer] error', e);
-        }
-    }
-
-    // 상위 창에 먼저 적용
-    killBeforeUnload(window);
-
-    // 스마트에디터 iframe에 적용 (로딩 타이밍을 고려해 폴링)
-    (function waitAndPatch(){
-        let tries = 0;
-        const t = setInterval(()=>{
-            tries++;
-            const ifr = document.querySelector('#editor-slot iframe');
-            const w = ifr && (ifr.contentWindow || (ifr.contentDocument && ifr.contentDocument.defaultView));
-            if (w){
-                killBeforeUnload(w);
-                clearInterval(t);
-            }
-            if (tries > 80) clearInterval(t); // ~10초 타임아웃
-        }, 125);
-    })();
-</script>
-
-<script> //인라인폼에 글이 한자라도 적혀있으면
-    (function(){
-
-        // 인라인 폼 (posts/_create-inline 안의 폼)
-        var $form = $('#postForm');
-        if (!$form.length) return;
-
-        // submit 중에는 떠나기 경고 안 뜨게
-        var isSubmitting = false;
-
-        // HTML → 거의-플레인 텍스트
-        function toPlain(html){
-            if(!html) return '';
-            return html
-                .replace(/<[^>]*>/g, ' ')    // 태그 제거
-                .replace(/&nbsp;/g, ' ')     // nbsp → 공백
-                .replace(/\s+/g, ' ')        // 연속 공백 정리
-                .trim();
-        }
-
-        // 지금 더러운가?
-        function isDirty(){
-            var title = $('#title').val() || '';
-            // SE2 내용을 textarea(#body)에 반영
-            try { oEditors?.getById?.["body"]?.exec("UPDATE_CONTENTS_FIELD", []); } catch(e){}
-            var bodyHtml = $('#body').val() || '';
-            var body = toPlain(bodyHtml);
-
-            var filesCnt = (document.getElementById('files-create')?.files?.length) || 0;
-
-            // 어떤 것이라도 내용이 있으면 dirty
-            return (title.trim().length > 0) || (body.length > 0) || (filesCnt > 0);
-        }
-
-        // 떠나기 경고(네이티브) 설치: 우리가 제공한 비밀 통로로만 등록
-        if (window.__addBeforeUnload) {
-            window.__addBeforeUnload(function(e){
-                if (isSubmitting) return;     // 제출중이면 허용
-                if (!isDirty()) return;       // 깨끗하면 허용
-                e.preventDefault();           // 크롬 등에서 필요
-                e.returnValue = '';           // 네이티브 경고 트리거
-            });
-        }
-
-        // 실제 제출(우리 ajax 제출 포함) 직전에 플래그 on
-        $form.on('submit', function(){
-            isSubmitting = true;
-            // 혹시 ajax 실패 시를 대비해 3초 뒤 자동 해제(원하면 조절)
-            setTimeout(function(){ isSubmitting = false; }, 3000);
-        });
-
-        // ★ ajax 성공 시 필드 초기화하면 isDirty()가 자동으로 false가 됨
-        //   (네 코드에 이미 초기화 있음: title/body/files 비우기 + window.__resetFiles?.())
-
-        // (선택) “글쓰기” 이동 같은 버튼에 data-skip-leave-warning 달았으면,
-        //       클릭 시 마지막으로 한 번 더 제출아님을 확인하고 그냥 이동:
-        document.addEventListener('click', function(e){
-            var a = e.target.closest('a[data-skip-leave-warning]');
-            if(!a) return;
-            // 굳이 무효화할 건 없음. 우리의 beforeunload는 dirty일 때만 뜨니까.
-        }, true);
-
-    })();
-</script>
-<script>
-    // 0-1) 혹시 전 페이지에서 등록된 beforeunload 핸들러가 남아있다면 제거
-    if (window.__dirtyGuard && window.__dirtyGuard._handler) {
-        window.removeEventListener('beforeunload', window.__dirtyGuard._handler);
-    }
-    window.onbeforeunload = null;
-
-    // 0-2) 혹시 캡처 단계에서 등록된 다른 핸들러가 있어도 못 올라오게 차단(리스트 한정 방어)
-    window.addEventListener('beforeunload', function(e){
-        e.stopImmediatePropagation();
-    }, true);
-
-    // 0-3) 혹시 전역 플래그 남아있다면 꺼버림
-    window.__dirtyGuard = { enabled:false, isDirty:false };
-</script>
 
 <script defer th:src="@{/js/confirm.js}"></script>
 

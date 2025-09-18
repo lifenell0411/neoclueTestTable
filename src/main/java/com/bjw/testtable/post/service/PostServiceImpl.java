@@ -124,16 +124,6 @@ public class PostServiceImpl implements PostService {
         return new PageImpl<>(trimmed, pageable, page.getTotalElements());
     }
 
-    // 필요시 HTML 제거까지
-    private static String toPreview(String body, int max) {
-        if (body == null) return "";
-        // 가볍게 태그 제거/공백 정리 (필요 없으면 바로 substring만)
-        String plain = body.replaceAll("<[^>]*>", " ")
-                .replace("&nbsp;", " ")
-                .replaceAll("\\s+", " ")
-                .trim();
-        return plain.length() <= max ? plain : plain.substring(0, max);
-    }
 
     @Override
     @Transactional
@@ -156,17 +146,15 @@ public class PostServiceImpl implements PostService {
             post.setUpdateAt(LocalDateTime.now());
         }
 
-        // 파일 삭제(해당 글의 파일만)
+        // 2) 파일 "소프트 삭제" (해당 글의 파일만)
         if (deleteFileIds != null && !deleteFileIds.isEmpty()) {
-            List<FileEntity> toDelete = fileRepository.findByIdInAndPostId(deleteFileIds, post.getId());
+            List<FileEntity> toDelete = fileRepository
+                    .findByIdInAndPostIdAndDeletedFalse(deleteFileIds, post.getId());
             for (FileEntity f : toDelete) {
-                try {
-                    fileStorageService.delete(f.getFilepath()); // 디스크(S3) 삭제
-                } catch (RuntimeException ex) {
-                    // 디스크 삭제 실패는 로그만 남기고 DB는 지울지 정책 결정 (여기선 같이 삭제)
-                }
+                // 물리 파일은 건드리지 않음 (정책: 나중에 배치로 정리)
+                f.markDeleted(currentUserId);
             }
-            fileRepository.deleteAll(toDelete);
+            fileRepository.saveAll(toDelete);
         }
 
         // 새 파일 추가
@@ -204,24 +192,25 @@ public class PostServiceImpl implements PostService {
     @Transactional
     @PreAuthorize("hasRole('ADMIN') or @postSecurity.isOwner(#id, authentication)")
     public void delete(Long id, String currentUserId, Collection<? extends GrantedAuthority> authorities) {
+
+
+        //post획득
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("게시글 없음"));
 
 
-        // 2) 첨부파일 엔티티들 조회 (삭제 안 된 것만)
+        // 파일 삭제 안된것들 획득
         List<FileEntity> files = fileRepository.findByPostIdAndDeletedFalse(id);
 
-        // 3) “표시만” 삭제 (물리 파일은 당장은 남겨둠)
+        // 여기서 deleted, deleted_at등등 값 변경
         post.markDeleted(currentUserId);
         files.forEach(f -> f.markDeleted(currentUserId));
 
-        // 4) 저장
-        // JPA 변경감지로 자동 flush 됨. 명시 save 해도 OK.
+        // 변경된 값으로 업데이트쳐줌
         postRepository.save(post);
         fileRepository.saveAll(files);
 
         // ※ 물리 파일은 당장 지우지 않음.
-        //    비용 절감/보관정책 필요 시, 배치/스케줄러로
-        //    "삭제된 지 N일 지난 파일"만 실제 파일시스템에서 제거하는 전략 추천.
+
     }
 }

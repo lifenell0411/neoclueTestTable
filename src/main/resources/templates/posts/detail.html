@@ -38,18 +38,16 @@
 
                     </div>
 
-                    <!-- 첨부파일 -->
-                    <div th:if="${post.files != null and #lists.size(post.files) > 0}" class="mb-4">
-                        <h5 class="mb-2" style="padding-left:1.25rem">첨부파일</h5>
-
-                        <ul class="mb-0">
-                            <li th:each="f : ${post.files}">
-                                <a th:href="@{/download/{id}(id=${f.id})}" th:text="${f.originalFilename}">파일명</a>
-                                (<span th:text="${#numbers.formatDecimal(f.size / 1048576.0, 1, 2)} + ' MB'">0.00 MB</span>)
-
-                            </li>
-                        </ul>
-                    </div>
+                <!-- 첨부파일: 삭제되지 않은 것만 (컨트롤러에서 이미 필터됨) -->
+                <div class="mb-4" th:if="${files != null and !#lists.isEmpty(files)}">
+                    <h5 class="mb-2" style="padding-left:1.25rem">첨부파일</h5>
+                    <ul class="mb-0">
+                        <li th:each="f : ${files}">
+                            <a th:href="@{/download/{id}(id=${f.id})}" th:text="${f.originalFilename}">파일명</a>
+                            (<span th:text="${f.size != null ? #numbers.formatDecimal(f.size / 1048576.0, 1, 2) + ' MB' : '—'}">—</span>)
+                        </li>
+                    </ul>
+                </div>
 
                     <!-- 버튼들 -->
                 <div class="card-footer d-flex justify-content-end">

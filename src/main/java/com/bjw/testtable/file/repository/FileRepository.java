@@ -10,9 +10,8 @@ public interface FileRepository extends JpaRepository<FileEntity, Long>, FileRep
 
     List<FileEntity> findByPostId(Long postId);
 
-    // 삭제 체크박스 처리용(내 글의 파일만)
-    List<FileEntity> findByIdInAndPostId(List<Long> ids, Long postId);
 
+    List<FileEntity> findByIdInAndPostIdAndDeletedFalse(List<Long> ids, Long postId);
     List<FileEntity> findByPostIdAndDeletedFalse(Long id);
 
 }

@@ -1,6 +1,10 @@
 package com.bjw.testtable.post.controller;
 
-import com.bjw.testtable.domain.post.*;
+import com.bjw.testtable.domain.file.FileEntity;
+import com.bjw.testtable.domain.post.PostCreateRequest;
+import com.bjw.testtable.domain.post.PostDetailResponse;
+import com.bjw.testtable.domain.post.PostListResponse;
+import com.bjw.testtable.domain.post.PostUpdateRequest;
 import com.bjw.testtable.file.repository.FileRepository;
 import com.bjw.testtable.post.service.PostService;
 import com.bjw.testtable.security.PostSecurity;
@@ -77,8 +81,12 @@ public class PostController {
                     || auth.getAuthorities().stream().anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
             // ↑ 간단히 auth의 ADMIN 권한만 체크. (원하면 보안 빈에 canEdit(...) 만들어도 됨)
         }
+        // ✅ 보이는 파일만(soft delete 제외)
+        List<FileEntity> files = fileRepository.findByPostIdAndDeletedFalse(id);
+
         model.addAttribute("post", post);
         model.addAttribute("canEdit", canEdit);
+        model.addAttribute("files", files); // ← 뷰에서는 이거만 사용
         return "posts/detail";
     }
 
