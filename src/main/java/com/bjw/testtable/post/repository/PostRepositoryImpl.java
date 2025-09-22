@@ -2,10 +2,10 @@ package com.bjw.testtable.post.repository;
 
 
 import com.bjw.testtable.post.dto.PostListResponse;
-import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
-import com.querydsl.core.types.dsl.StringTemplate;
+import com.querydsl.core.types.dsl.StringExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -26,25 +26,9 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
 
     @Override
     public Page<PostListResponse> search(String field, String query, Pageable pageable) {
-        BooleanBuilder where = new BooleanBuilder().and(post.deleted.isFalse());
-
-        String kw = (query == null) ? "" : query.trim();
-        if (!kw.isEmpty()) {
-            String like = "%" + kw.toLowerCase() + "%";
-            // CLOB 안전 비교를 위해 body를 문자열로 캐스팅
-            StringTemplate bodyStr = Expressions.stringTemplate("CAST({0} as string)", post.body);
-
-            switch (field) {
-                case "title" -> where.and(post.title.lower().like(like));
-                case "body"  -> where.and(bodyStr.lower().like(like));
-                case "user"  -> where.and(post.userId.lower().like(like));
-                default -> where.and(
-                        post.title.lower().like(like)
-                                .or(bodyStr.lower().like(like))
-                                .or(post.userId.lower().like(like))
-                );
-            }
-        }
+//        BooleanBuilder where = new BooleanBuilder().and(post.deleted.isFalse());
+//
+//
 
         // ✅ DTO 프로젝션 (DB에서는 자르지 않음)
         List<PostListResponse> content = queryFactory
@@ -57,7 +41,8 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
                         post.updateAt.as("updateAt")
                 ))
                 .from(post)
-                .where(where)
+                .where(post.deleted.isFalse(),              // 기본 조건
+                        createSearchField(field, query))
                 .orderBy(post.id.desc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
@@ -66,9 +51,39 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
         Long total = queryFactory
                 .select(post.count())
                 .from(post)
-                .where(where)
+                .where(post.deleted.isFalse(),              // 기본 조건
+                        createSearchField(field, query))
                 .fetchOne();
 
         return new PageImpl<>(content, pageable, total == null ? 0L : total);
     }
-}
+
+
+
+    private BooleanExpression createSearchField(String field, String query) {
+        String kw = (query == null) ? "" : query.trim();
+
+        if (kw.isEmpty()) {
+            return null; // 검색어가 없으면 조건을 추가하지 않음
+        }
+        String like = "%" + kw.toLowerCase() + "%";
+        StringExpression bodyPlainLower = Expressions.stringTemplate(
+                "lower(cast(" +
+                        "  function('regexp_replace'," +                 // \s+ → ' '
+                        "    function('regexp_replace'," +               // <태그> → ' '
+                        "      function('replace', cast({0} as string), '&nbsp;', ' ')," +
+                        "      '<[^>]*>', ' ')," +
+                        "    '\\\\s+', ' ')" +
+                        " as string))",
+                post.body
+        );
+
+        return switch (field) {
+            case "title" -> post.title.lower().like(like);
+            case "body"  -> bodyPlainLower.like(like);
+            case "user"  -> post.userId.lower().like(like);
+            default      -> post.title.lower().like(like)
+                    .or(bodyPlainLower.like(like))
+                    .or(post.userId.lower().like(like));
+        };
+    }}

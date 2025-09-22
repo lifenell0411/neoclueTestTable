@@ -575,7 +575,7 @@
 		<hr>
 		<!-- 입력 -->
 		<div class="se2_input_area husky_seditor_editing_area_container">
-			
+
 			
 			<iframe src="about:blank" id="se2_iframe" name="se2_iframe" class="se2_input_wysiwyg" width="400" height="300" title="글쓰기 영역 : 도구 모음은 ALT+F10을, 도움말은 ALT+0을 누르세요." frameborder="0" style="display:block;"></iframe>
 			<textarea name="" rows="10" cols="100" title="HTML 편집 모드" class="se2_input_syntax se2_input_htmlsrc" style="display:none;outline-style:none;resize:none"> </textarea>
@@ -775,6 +775,33 @@
 	</div>
 </div>
 <!-- SE2 Markup End -->
+<script type="text/javascript">
+    window.onload = function() {
+        var editorBody = document.body;
+
+        editorBody.addEventListener('dragover', function(e) {
+            e.preventDefault();
+        });
+
+        editorBody.addEventListener('drop', function(e) {
+            e.preventDefault();
+
+            if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+                // ✅✅✅ 이 부분이 핵심입니다. ✅✅✅
+                // parent, opener 대신 window.parent를 사용하여
+                // 부모창의 uploadDroppedFile 함수를 직접 호출합니다.
+                try {
+                    // oApp은 이 스킨 파일 내의 전역 에디터 객체입니다.
+                    var oEditor = window.parent.oEditors.getById[oApp.elPlaceHolder.id];
+                    window.parent.uploadDroppedFile(e.dataTransfer.files[0], oEditor);
+                } catch (err) {
+                    alert("부모 창과 통신하는 데 실패했습니다. 콘솔을 확인해주세요.");
+                    console.error("부모 창의 업로드 함수 호출 실패:", err);
+                }
+            }
+        });
+    };
+</script>
 
 
 </body>

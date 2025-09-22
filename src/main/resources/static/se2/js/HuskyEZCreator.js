@@ -30,13 +30,13 @@ nhn.husky.EZCreator = new (function(){
 
 		if(bUseBlocker) nhn.husky.EZCreator.showBlocker();
 
-		var attachEvent = function(elNode, sEvent, fHandler){ 
+		var attachEvent = function(elNode, sEvent, fHandler){
 			if(elNode.addEventListener){
 				elNode.addEventListener(sEvent, fHandler, false);
 			}else{
 				elNode.attachEvent("on"+sEvent, fHandler);
 			}
-		} 
+		}
 
 		if(!elPlaceHolder){
 			alert("Placeholder is required!");
@@ -47,7 +47,7 @@ nhn.husky.EZCreator = new (function(){
 			elPlaceHolder = document.getElementById(elPlaceHolder);
 
 		var elIFrame, nEditorWidth, nEditorHeight;
-		 
+
 
 		try{
 			elIFrame = document.createElement("<IFRAME frameborder=0 scrolling=no>");
@@ -56,19 +56,20 @@ nhn.husky.EZCreator = new (function(){
 			elIFrame.setAttribute("frameborder", "0");
 			elIFrame.setAttribute("scrolling", "no");
 		}
-		
+
 		elIFrame.style.width = "1px";
 		elIFrame.style.height = "1px";
+
 		elPlaceHolder.parentNode.insertBefore(elIFrame, elPlaceHolder.nextSibling);
-		
+
 		attachEvent(elIFrame, "load", function(){
 			fCreator = elIFrame.contentWindow[fCreator] || elIFrame.contentWindow.createSEditor2;
-			
+
 //			top.document.title = ((new Date())-window.STime);
 //			window.STime = new Date();
-			
+
 			try{
-			
+
 				nEditorWidth = elIFrame.contentWindow.document.body.scrollWidth || "500px";
 				nEditorHeight = elIFrame.contentWindow.document.body.scrollHeight + 12;
 				elIFrame.style.width =  "100%";
@@ -82,19 +83,19 @@ nhn.husky.EZCreator = new (function(){
 				alert("Failed to access "+sSkinURI);
 				return;
 			}
-			
+
 			var oApp = fCreator(elPlaceHolder, htParams);	// oEditor
-			
+
 
 			oApp.elPlaceHolder = elPlaceHolder;
 
 			oAppRef[oAppRef.length] = oApp;
 			if(!oAppRef.getById) oAppRef.getById = {};
-			
+
 			if(elPlaceHolder.id) oAppRef.getById[elPlaceHolder.id] = oApp;
 
-			oApp.run({fnOnAppReady:fOnAppLoad}); 
-			
+			oApp.run({fnOnAppReady:fOnAppLoad});
+
 //			top.document.title += ", "+((new Date())-window.STime);
 			nhn.husky.EZCreator.hideBlocker();
 		});

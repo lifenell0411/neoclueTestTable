@@ -22,7 +22,6 @@
     <script th:src="@{/se2/js/HuskyEZCreator.js}" charset="utf-8"></script>
     <link rel="preload" href="/se2/SmartEditor2Skin.html" as="fetch">
 
- ㅈ
 
 
     <style>
@@ -227,6 +226,24 @@
 
 <!--   인라인+모달 2벌 폼 공용 초기화 -->
 <script th:inline="javascript">
+    window.uploadDroppedFile = function(file, oEditor) {
+        var formData = new FormData();
+        formData.append('Filedata', file);
+        jQuery.ajax({
+            url: '/image-upload',
+            type: 'POST',
+            data: formData,
+            processData: false, contentType: false,
+            success: function(response) {
+                var params = {};
+                response.split('&').forEach(function(p){ var i=p.split('='); params[i[0]]=decodeURIComponent(i[1]); });
+                if (params.sFileURL) {
+                    oEditor.exec("PASTE_HTML", ['<img src="'+params.sFileURL+'" style="max-width:100%;">']);
+                }
+            },
+            error: function(xhr) { alert('업로드 실패: ' + xhr.responseText); }
+        });
+    };
     (function(){
 
         // ▷ 리스트 상단에 행 끼워 넣고 가운데정렬 유지
