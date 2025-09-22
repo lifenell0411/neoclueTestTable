@@ -1,6 +1,6 @@
 package com.bjw.testtable.file.controller;
 
-import com.bjw.testtable.domain.file.FileDownloadDto;
+import com.bjw.testtable.file.dto.FileDownloadDto;
 import com.bjw.testtable.file.service.FileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;

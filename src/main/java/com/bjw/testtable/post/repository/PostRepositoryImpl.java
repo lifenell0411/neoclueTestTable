@@ -1,7 +1,7 @@
 package com.bjw.testtable.post.repository;
 
 
-import com.bjw.testtable.domain.post.PostListResponse;
+import com.bjw.testtable.post.dto.PostListResponse;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.Expressions;
@@ -48,7 +48,7 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
 
         // ✅ DTO 프로젝션 (DB에서는 자르지 않음)
         List<PostListResponse> content = queryFactory
-                .select(Projections.bean(PostListResponse.class,
+                .select(Projections.bean(PostListResponse.class, //Post엔티티 통째로 말고 지정한 필드만 뽑아서 response객쳉에 담아서 줘라 //프로젝션
                         post.id.as("id"),
                         post.title.as("title"),
                         post.userId.as("authorUserId"),

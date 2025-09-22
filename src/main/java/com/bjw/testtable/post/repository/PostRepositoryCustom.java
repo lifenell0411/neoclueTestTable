@@ -1,6 +1,6 @@
 package com.bjw.testtable.post.repository;
 
-import com.bjw.testtable.domain.post.PostListResponse;
+import com.bjw.testtable.post.dto.PostListResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

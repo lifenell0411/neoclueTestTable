@@ -1,10 +1,15 @@
 package com.bjw.testtable.post.service;
 
 import com.bjw.testtable.domain.file.FileEntity;
-import com.bjw.testtable.domain.post.*;
+import com.bjw.testtable.domain.post.Post;
+import com.bjw.testtable.file.dto.FileResponse;
 import com.bjw.testtable.file.repository.FileRepository;
 import com.bjw.testtable.file.storage.FileStorageResult;
 import com.bjw.testtable.file.storage.FileStorageService;
+import com.bjw.testtable.post.dto.PostCreateRequest;
+import com.bjw.testtable.post.dto.PostDetailResponse;
+import com.bjw.testtable.post.dto.PostListResponse;
+import com.bjw.testtable.post.dto.PostUpdateRequest;
 import com.bjw.testtable.post.repository.PostRepository;
 import com.bjw.testtable.util.Util;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +28,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.bjw.testtable.util.Util.preview;
 
@@ -59,15 +65,8 @@ public class PostServiceImpl implements PostService {
 
                     FileStorageResult fr = fileStorageService.save(mf);
 
-                    FileEntity fe = FileEntity.builder()                    //fileStorygeResul에서 반환된 path, contentType을 받아서 FileEntity로 저장
-                            .postId(saved.getId())                         // FK: post_id (엔티티 연관관계라면 post 객체 그대로 넘김)
-                            .userId(currentUserId)               // FK: users.user_id
-                            .filepath(fr.getPath())              // 저장된 파일 경로
-                            .contentType(fr.getContentType())    // MIME 타입
-                            .originalFilename(mf.getOriginalFilename()) // 업로드 당시 파일명
-                            .size(mf.getSize())                  // 파일 크기 (bytes)
-                            .build();
-
+                    // ✅ 정적 팩토리 메서드를 사용하여 한 줄로 생성
+                    FileEntity fe = FileEntity.create(mf, fr, saved.getId(), currentUserId);
 
                     fileRepository.save(fe);
                 }
@@ -108,20 +107,20 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public Page<PostListResponse> list(String field, String query, Pageable pageable) {
-        Page<PostListResponse> page = postRepository.search(field, query, pageable);
+        //Repository로부터 이미 DTO로 변환된 페이지를 받음 page
+        Page<PostListResponse> page = postRepository.search(field, query, pageable);//검색어있으면 그 리스트, 없으면 전체리스트
 
-        List<PostListResponse> trimmed = page.getContent().stream()
-                .map(p -> PostListResponse.builder()
-                        .id(p.getId())
-                        .title(preview(p.getTitle(), 10))              // 제목 30자
-                        .authorUserId(p.getAuthorUserId())
-                        .bodyPreview(preview(p.getBodyPreview(), 20))  // 본문 70자
-                        .createdAt(p.getCreatedAt())
-                        .updateAt(p.getUpdateAt())
-                        .build())
-                .collect(java.util.stream.Collectors.toList()); // ← Collectors로 명시
+        // 2. 내용물(List<PostListResponse>)에 대해서만 'preview' 로직을 적용
+        List<PostListResponse> processedContent = page.getContent().stream() // processedContent에 page리스트의 내용물만 꺼내서 가공하고 그 결과물 넣는다
+                .map(p -> { //형변환 아니고 각각의 요소를 수정/변경한다. 객체 하나가 p
+                    // 기존 DTO는 그대로 두고, title과 bodyPreview 필드만 잘라서 교체
+                    p.setTitle(preview(p.getTitle(), 10));
+                    p.setBodyPreview(preview(p.getBodyPreview(), 20));
+                    return p;
+                })
+                .collect(Collectors.toList());//p들을 모아서 다시 정렬
 
-        return new PageImpl<>(trimmed, pageable, page.getTotalElements());
+        return new PageImpl<>(processedContent, pageable, page.getTotalElements());//결과보고서:프리뷰적용된p들의 정렬된리스트, 페이지정보, 토탈갯수를 Page객체로 반환
     }
 
 
@@ -134,13 +133,13 @@ public class PostServiceImpl implements PostService {
                        List<MultipartFile> newFiles,
                        List<Long> deleteFileIds) {
 
-        Post post = postRepository.findById(id) //영속엔티티
+        Post post = postRepository.findById(id) //영속엔티티 // 내부적으로 거의 EntityManager.find(Post.class, id)와 같음
                 .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다. id=" + id));
 
 
         // 본문/제목 수정
         post.setTitle(req.getTitle()); //더티체킹?영속엔티티의 필드를 바꾸면 커밋 시점에 자동으로 updateSQL날림 그래서 save가 필요없음
-        post.setBody(req.getBody());
+        post.setBody(req.getBody());//
 
         if (hasUpdateAt(post)) {
             post.setUpdateAt(LocalDateTime.now());
@@ -163,15 +162,7 @@ public class PostServiceImpl implements PostService {
                 if (mf == null || mf.isEmpty()) continue;
 
                 FileStorageResult fr = fileStorageService.save(mf);
-                FileEntity fe = FileEntity.builder()
-                        .postId(post.getId())
-                        .userId(currentUserId)
-                        .filepath(fr.getPath())
-                        .contentType(fr.getContentType())
-                        .originalFilename(mf.getOriginalFilename())
-                        .size(mf.getSize())
-                        .build();
-
+                FileEntity fe = FileEntity.create(mf, fr, post.getId(), currentUserId);
                 fileRepository.save(fe); //new 객체는 비영속이라 save 소환해줘야 db에 insert됨
             }
         }

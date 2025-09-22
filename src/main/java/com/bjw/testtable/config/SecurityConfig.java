@@ -38,11 +38,12 @@ public class SecurityConfig {
                 .authenticationProvider(provider)
                 // SmartEditor2가 iframe을 써서 필요
                 .headers(h -> h.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin))
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/image-upload"))
                 .authorizeHttpRequests(auth -> auth
                         // 표준 정적 리소스( /static/** ) 전부 허용
                         .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
                         // 부트 자동 커버 밖에 있는 것들만 문자열 패턴으로 허용
-                        .requestMatchers("/dist/**", "/plugins/**", "/se2/**","/error", "/js**").permitAll()
+                        .requestMatchers("/dist/**", "/plugins/**", "/se2/**","/error", "/js/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form

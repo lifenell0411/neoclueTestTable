@@ -1,11 +1,13 @@
 package com.bjw.testtable.domain.file;
 
+import com.bjw.testtable.file.storage.FileStorageResult;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 
@@ -65,6 +67,18 @@ public class FileEntity { //DB테이블 file의 1:1매핑. JPA가 관리, FileRe
         this.deletedAt = null;
         this.deletedBy = null;
     }
-
+    public static FileEntity create(MultipartFile file,
+                                    FileStorageResult storageResult,
+                                    Long postId,
+                                    String userId) {
+        return FileEntity.builder()
+                .postId(postId)
+                .userId(userId)
+                .filepath(storageResult.getPath())
+                .contentType(storageResult.getContentType())
+                .originalFilename(file.getOriginalFilename())
+                .size(file.getSize())
+                .build();
+    }
 
 }

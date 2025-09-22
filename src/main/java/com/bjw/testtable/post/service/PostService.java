@@ -1,9 +1,9 @@
 package com.bjw.testtable.post.service;
 
-import com.bjw.testtable.domain.post.PostCreateRequest;
-import com.bjw.testtable.domain.post.PostDetailResponse;
-import com.bjw.testtable.domain.post.PostListResponse;
-import com.bjw.testtable.domain.post.PostUpdateRequest;
+import com.bjw.testtable.post.dto.PostCreateRequest;
+import com.bjw.testtable.post.dto.PostDetailResponse;
+import com.bjw.testtable.post.dto.PostListResponse;
+import com.bjw.testtable.post.dto.PostUpdateRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.GrantedAuthority;

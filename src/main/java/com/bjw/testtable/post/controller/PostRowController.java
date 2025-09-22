@@ -1,7 +1,7 @@
 package com.bjw.testtable.post.controller;
 
-import com.bjw.testtable.domain.post.PostCreateRequest;
-import com.bjw.testtable.domain.post.PostDetailResponse;
+import com.bjw.testtable.post.dto.PostCreateRequest;
+import com.bjw.testtable.post.dto.PostDetailResponse;
 import com.bjw.testtable.post.dto.PostListItemDto;
 import com.bjw.testtable.post.service.PostService;
 import jakarta.validation.Valid;

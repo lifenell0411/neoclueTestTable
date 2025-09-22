@@ -1,6 +1,5 @@
 package com.bjw.testtable.post.dto;
 
-import com.bjw.testtable.domain.post.PostDetailResponse;
 import lombok.Data;
 
 import java.time.LocalDateTime;
