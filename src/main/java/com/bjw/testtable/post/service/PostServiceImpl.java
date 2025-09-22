@@ -60,13 +60,13 @@ public class PostServiceImpl implements PostService {
         );
 
         if (files != null) {
-            for (MultipartFile mf : files) {
+            for (MultipartFile mf : files) { //mf : 파일명, 파일크기
                 if (mf != null && !mf.isEmpty()) {
 
-                    FileStorageResult fr = fileStorageService.save(mf);
+                    FileStorageResult fr = fileStorageService.save(mf); //컨텐츠타입,저장된 파일경로
 
-                    // ✅ 정적 팩토리 메서드를 사용하여 한 줄로 생성
-                    FileEntity fe = FileEntity.create(mf, fr, saved.getId(), currentUserId);
+
+                    FileEntity fe = FileEntity.create(mf, fr, saved.getId(), currentUserId); //fe에 담아서 save
 
                     fileRepository.save(fe);
                 }
@@ -85,23 +85,19 @@ public class PostServiceImpl implements PostService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다."));
 
 
-        List<FileResponse> files = fileRepository.findByPostId(id).stream()
-                .map(f -> FileResponse.builder()
-                        .id(f.getId())
-                        .originalFilename(f.getOriginalFilename())
-                        .size(f.getSize())
-                        .build())
+//        List<FileResponse> files = fileRepository.findByPostIdAndDeletedFalse(id).stream()
+//                .map(f -> FileResponse.builder()
+//                        .id(f.getId())
+//                        .originalFilename(f.getOriginalFilename())
+//                        .size(f.getSize())
+//                        .build())
+//                .toList();
+        List<FileResponse> files = fileRepository.findByPostIdAndDeletedFalse(id).stream()
+                .map(FileResponse::from) // ⬅️ "FileResponse의 from 메서드를 사용해서 변환해줘"
                 .toList();
 
-        return PostDetailResponse.builder()
-                .id(post.getId())
-                .title(post.getTitle())
-                .body(post.getBody())
-                .authorUserId(post.getUserId())
-                .createdAt(post.getCreatedAt())
-                .updateAt(post.getUpdateAt())
-                .files(files)
-                .build();
+
+        return PostDetailResponse.from(post, files);
     }
 
 
@@ -204,4 +200,5 @@ public class PostServiceImpl implements PostService {
         // ※ 물리 파일은 당장 지우지 않음.
 
     }
+
 }
