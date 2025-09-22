@@ -32,14 +32,15 @@ server:
     max-swallow-size: 25MB         # 업로드 중단 시 잔여 바디 처리 한도
 
 logging:
-  level:                 # ✅ 깔끔하게 정리
-    com.bjw.testtable: DEBUG
-    org.springframework.security: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
-    org.hibernate.orm.jdbc.bind: TRACE
-    com.zaxxer.hikari: INFO
+  level:
+    org:
+      springframework:
+        security: DEBUG
 
 app:
   upload:
     dir: /Users/baekjiwon/uploads
+
+custom:
+  upload:
+    path: /Users/baekjiwon/uploads/

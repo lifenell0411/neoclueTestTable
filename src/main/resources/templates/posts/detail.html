@@ -9,7 +9,14 @@
     <!-- (선택) 아이콘 필요하면 주석 해제
     <link rel="stylesheet" th:href="@{/plugins/fontawesome-free/css/all.min.css}">
     -->
-
+    <style>
+        /* 'post-body' 클래스 안의 모든 img 태그에 적용 */
+        .post-body img {
+            max-width: 100%;
+            height: auto;
+            display: block; /* (선택) 이미지가 혼자 한 줄을 차지하도록 하여 정렬을 깔끔하게 함 */
+        }
+    </style>
 </head>
 <body class="bg-light">
 

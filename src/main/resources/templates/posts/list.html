@@ -232,13 +232,10 @@
         // ▷ 리스트 상단에 행 끼워 넣고 가운데정렬 유지
         function prependRowHtml(html){
             if(!html) return;
-            $('#post-list-body').prepend(html); //성공콜백의 row하나를 꽂아넣음
+            $('#post-list-body').prepend(html); //성공콜백의 row하나를 꽂아넣음 post-list-body라는 id를 가진곳에다가
             $('#no-posts-row').remove();
 
-            // 1=id, 4=첨부, 5=아이디, 6/7=일시 (현재 네 테이블 열 순서 기준)
-            const $first = $('#post-list-body tr').first();
-            $first.find('td:nth-child(1), td:nth-child(4), td:nth-child(5), td:nth-child(6), td:nth-child(7)')
-                .addClass('text-center');
+
         }
 
         // ▷ 에디터 폭/고정폭 보정 유틸 (전역 재사용)

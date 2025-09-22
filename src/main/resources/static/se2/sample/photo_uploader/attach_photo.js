@@ -334,8 +334,8 @@
     	var tempFile,
     		sUploadURL;
     	
-    	sUploadURL= g_sUploadURL;; 	//upload URL
-    	
+    	sUploadURL= '/image-upload';	//upload URL
+
     	//파일을 하나씩 보내고, 결과를 받음.
     	for(var j=0, k=0; j < nImageInfoCnt; j++) {
     		tempFile = htImageInfo['img'+j];
@@ -349,33 +349,67 @@
     		tempFile = null;
     	}
 	}
-    
+    //
+    // function callAjaxForHTML5 (tempFile, sUploadURL){
+    // 	var oAjax = jindo.$Ajax(sUploadURL, {
+	// 		type: 'xhr',
+	// 		method : "post",
+	// 		onload : function(res){ // 요청이 완료되면 실행될 콜백 함수
+	// 			var sResString = res._response.responseText;
+	// 			if (res.readyState() == 4) {
+	// 				if(sResString.indexOf("NOTALLOW_") > -1){
+	// 					var sFileName = sResString.replace("NOTALLOW_", "");
+	// 					alert("이미지 파일(jpg,gif,png,bmp)만 업로드 하실 수 있습니다. ("+sFileName+")");
+	// 				}else{
+	// 					//성공 시에  responseText를 가지고 array로 만드는 부분.
+	// 					makeArrayFromString(res._response.responseText);
+	// 				}
+	// 			}
+	// 		},
+	// 		timeout : 3,
+	// 		onerror :  jindo.$Fn(onAjaxError, this).bind()
+	// 	});
+	// 	oAjax.header("contentType","multipart/form-data");
+	// 	oAjax.header("file-name",encodeURIComponent(tempFile.name));
+	// 	oAjax.header("file-size",tempFile.size);
+	// 	oAjax.header("file-Type",tempFile.type);
+	// 	oAjax.request(tempFile);
+    // }
+
     function callAjaxForHTML5 (tempFile, sUploadURL){
-    	var oAjax = jindo.$Ajax(sUploadURL, {
-			type: 'xhr',
-			method : "post",
-			onload : function(res){ // 요청이 완료되면 실행될 콜백 함수
-				var sResString = res._response.responseText;
-				if (res.readyState() == 4) {
-					if(sResString.indexOf("NOTALLOW_") > -1){
-						var sFileName = sResString.replace("NOTALLOW_", "");
-						alert("이미지 파일(jpg,gif,png,bmp)만 업로드 하실 수 있습니다. ("+sFileName+")");
-					}else{
-						//성공 시에  responseText를 가지고 array로 만드는 부분.
-						makeArrayFromString(res._response.responseText);
-					}
-				}
-			},
-			timeout : 3,
-			onerror :  jindo.$Fn(onAjaxError, this).bind()
-		});
-		oAjax.header("contentType","multipart/form-data");
-		oAjax.header("file-name",encodeURIComponent(tempFile.name));
-		oAjax.header("file-size",tempFile.size);
-		oAjax.header("file-Type",tempFile.type);
-		oAjax.request(tempFile);
+        // ✅ 1. 파일 타입 검사를 위한 정규식 추가
+        // jpg, jpeg, png, gif, bmp 확장자인지 (대소문자 구분 안 함) 확인합니다.
+        var rFilter = /^(image\/bmp|image\/gif|image\/jpg|image\/jpeg|image\/png)$/i;
+        if (!rFilter.test(tempFile.type)) {
+            alert("이미지 파일(jpg,gif,png,bmp)만 업로드 가능합니다.");
+            return; // 함수를 즉시 종료하여 업로드를 막습니다.
+        }
+
+        // 2. FormData 객체를 생성합니다.
+        var formData = new FormData();
+
+        // 3. FormData에 파일을 담습니다.
+        formData.append('Filedata', tempFile);
+
+        // 4. jQuery Ajax로 파일을 전송합니다.
+        $.ajax({
+            url: sUploadURL,
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                // 성공 시 서버의 응답(콜백 스크립트)을 페이지에 추가하여 실행시킵니다.
+                $('body').append(response);
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                console.error("파일 업로드 실패:", textStatus, errorThrown);
+                // Jindo 원본 코드와 동일하게 onAjaxError 함수를 호출합니다.
+                onAjaxError();
+            }
+        });
     }
-    
+
     function makeArrayFromString(sResString){
     	var	aTemp = [],
     		aSubTemp = [],
@@ -465,14 +499,60 @@
       * 이미지 업로드 시작
       * 확인 버튼 클릭하면 호출되는 msg
       */
-     function uploadImage (e){
-    	 if(!bSupportDragAndDropAPI){
-    		 generalUpload();
-    	 }else{
-    		 html5Upload();
-    	 }
-     }
-     
+     // function uploadImage (e){
+    	//  if(!bSupportDragAndDropAPI){
+    	// 	 generalUpload();
+    	//  }else{
+    	// 	 html5Upload();
+    	//  }
+     // }
+    function uploadImage (e) {
+        // bSupportDragAndDropAPI 변수는 이미 파일 상단에 정의되어 있습니다.
+        if (!bSupportDragAndDropAPI) {
+            // 구형 브라우저용 업로드 (이 부분은 원래 코드 그대로 둡니다)
+            generalUpload();
+        } else {
+            // HTML5 브라우저용 업로드
+            // htImageInfo는 드래그앤드롭으로 추가된 파일 정보를 담는 전역 변수입니다.
+            for (var j = 0; j < nImageInfoCnt; j++) {
+                var tempFile = htImageInfo['img' + j];
+                if (!!tempFile) {
+                    // ✅ 우리가 만든 올바른 AJAX 함수를 여기서 호출합니다.
+                    callAjaxForHTML5_Fixed(tempFile, '/image-upload');
+                }
+            }
+        }
+    }
+
+        /**
+         * jQuery와 FormData를 사용하는 수정된 최종 업로드 함수
+         * @param tempFile 업로드할 파일 객체
+         * @param sUploadURL 서버 URL (예: '/image-upload')
+         */
+        function callAjaxForHTML5_Fixed(tempFile, sUploadURL) {
+            // 파일 타입 검사
+            var rFilter = /^(image\/bmp|image\/gif|image\/jpg|image\/jpeg|image\/png)$/i;
+            if (!rFilter.test(tempFile.type)) {
+                alert("이미지 파일(jpg,gif,png,bmp)만 업로드 가능합니다.");
+                return;
+            }
+
+            var formData = new FormData();
+            formData.append('Filedata', tempFile);
+
+            // ✅ '$' 대신 'jQuery'라는 전체 이름을 사용합니다.
+
+            jQuery.ajax({
+                url: sUploadURL,
+                type: "POST",
+                data: formData,
+                processData: false,
+                contentType: false,
+                // ✅✅✅ 이 success 부분을 수정합니다. ✅✅✅
+                success: makeArrayFromString,
+                error: onAjaxError
+            });
+        }
  	/**
  	 * jindo에 파일 업로드 사용.(iframe에 Form을 Submit하여 리프레시없이 파일을 업로드하는 컴포넌트)
  	 */

@@ -62,5 +62,4 @@ public class FileServiceImpl implements FileService { //여기서 아이디를 �
         // 3. 파일 메타데이터를 데이터베이스에 저장한다.
         return fileRepository.save(fileEntity);
     }
-
 }
