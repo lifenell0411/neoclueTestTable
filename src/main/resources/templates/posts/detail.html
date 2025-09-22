@@ -17,6 +17,64 @@
             display: block; /* (선택) 이미지가 혼자 한 줄을 차지하도록 하여 정렬을 깔끔하게 함 */
         }
     </style>
+    <style>
+    /* 본문 컨테이너 기본 */
+    .post-body {
+    /* 아주 긴 한글/영문/숫자도 임의 위치에서 줄바꿈 */
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.7; /* 기본 줄간격 */
+    }
+
+    /* 문단/목록 간 여백 */
+    .post-body p,
+    .post-body li,
+    .post-body blockquote {
+    margin: 0 0 .9rem;
+    }
+
+    /* 에디터가 넣은 이미지/표/미디어가 카드 폭을 넘지 않게 */
+    .post-body img,
+    .post-body video,
+    .post-body iframe,
+    .post-body table {
+    max-width: 100% !important;
+    height: auto !important;
+    }
+    .post-body table {
+    table-layout: auto;
+    width: 100% !important;
+    }
+
+    /* 코드/프리 텍스트도 줄바꿈 */
+    .post-body pre,
+    .post-body code {
+    white-space: pre-wrap;
+    }
+
+    /* 붙여넣기된 모든 요소에 박스사이징 통일 */
+    .post-body * {
+    box-sizing: border-box;
+    }
+
+    /* 에디터가 inline style로 과하게 키운 폰트를 안전한 범위로 캡(상한) */
+    /* (inline style보다 !important가 우선) */
+    .post-body [style*="font-size"] {
+    /* 최소 1rem, 화면폭 비례, 최대 1.75rem(≈28px)로 제한 */
+    font-size: clamp(1rem, 2.5vw, 1.75rem) !important;
+    line-height: 1.6 !important; /* 큰 글자일수록 줄겹침 방지 */
+    }
+
+    /* 혹시 붙여넣기된 요소가 이상한 line-height를 가지고 오면 교정 */
+    .post-body [style*="line-height"] {
+    line-height: 1.6 !important;
+    }
+
+    /* 아주 긴 URL/파일명도 안전하게 줄바꿈 */
+    .post-body a {
+    word-break: break-all;
+    }
+    </style>
 </head>
 <body class="bg-light">
 
